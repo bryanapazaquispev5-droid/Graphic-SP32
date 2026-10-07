@@ -1,0 +1,3368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laboratorio ESP32 - Circuito Físico con Doble Protoboard, Zumbador y Pantalla LCD 1602 I2C</title>
+  <style>
+    :root {
+      --bg: #090e17;
+      --card-bg: #131c2e;
+      --card-border: #22324d;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.25);
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --proto-body: #f8fafc;
+      --proto-border: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 16px 20px;
+      line-height: 1.5;
+    }
+
+    .container { max-width: 1640px; margin: 0 auto; }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    h1 {
+      font-size: 1.55rem;
+      font-weight: 800;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge-chip {
+      font-size: 0.8rem;
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--accent);
+      padding: 2px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    /* Pestañas de Vista */
+    .tabs-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      background: #0f172a;
+      padding: 6px;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.85rem;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: #1e293b;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .tab-btn:hover:not(.active) { color: #f8fafc; background: rgba(255,255,255,0.04); }
+
+    /* Barra de herramientas */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .search-box {
+      background: #101827;
+      border: 1px solid var(--card-border);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      outline: none;
+      width: 290px;
+    }
+    .search-box:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+
+    .jumper-btn {
+      background: #1a2333;
+      border: 1px solid #f59e0b;
+      color: #fbbf24;
+      font-weight: 700;
+      font-size: 0.82rem;
+      padding: 7px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Layout Principal */
+    .workspace-layout {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 1240px) {
+      .workspace-layout { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 8px 20px -4px rgba(0,0,0,0.4);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Contenedor del Lienzo Gráfico */
+    .canvas-box {
+      background: #050811;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow-x: auto;
+      min-height: 700px;
+    }
+
+    svg.main-svg {
+      width: 100%;
+      height: auto;
+      max-height: 880px;
+      user-select: none;
+    }
+
+    /* Pines y Orificios Interactivos */
+    .interactive-pin {
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .interactive-pin:hover circle.hole,
+    .interactive-pin:hover circle.pin-contact {
+      filter: drop-shadow(0 0 6px #38bdf8);
+      stroke: #38bdf8 !important;
+      stroke-width: 2 !important;
+    }
+    .interactive-pin.selected circle.hole,
+    .interactive-pin.selected circle.pin-contact {
+      fill: #22c55e !important;
+      stroke: #ffffff !important;
+      filter: drop-shadow(0 0 8px #22c55e);
+    }
+    .interactive-pin.highlighted circle.hole,
+    .interactive-pin.highlighted circle.pin-contact {
+      fill: #eab308 !important;
+      filter: drop-shadow(0 0 6px #eab308);
+    }
+
+    /* Cables Vectoriales Interactivos */
+    .wire-interactive {
+      cursor: pointer;
+      transition: stroke-width 0.2s, filter 0.2s, opacity 0.2s;
+    }
+    .wire-interactive:hover {
+      stroke-width: 7 !important;
+      filter: drop-shadow(0 0 8px currentColor) !important;
+    }
+    .wire-interactive.active-wire {
+      stroke-width: 8 !important;
+      filter: drop-shadow(0 0 12px #22c55e) drop-shadow(0 0 4px #ffffff) !important;
+    }
+    .wire-interactive.dimmed {
+      opacity: 0.22;
+    }
+
+    .wire-endpoint {
+      fill: #f8fafc;
+      stroke: #0f172a;
+      stroke-width: 1.5;
+      transition: all 0.2s;
+    }
+    .wire-endpoint.active-point {
+      fill: #22c55e !important;
+      stroke: #ffffff !important;
+      stroke-width: 2.5 !important;
+      filter: drop-shadow(0 0 10px #22c55e);
+      transform-origin: center;
+    }
+
+    /* Inspector Lateral */
+    .inspector-card {
+      background: #0d1424;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .pin-title { font-size: 1.25rem; font-weight: 800; color: #fff; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-sig { background: #0369a1; color: #e0f2fe; }
+    .badge-vcc { background: #b91c1c; color: #fee2e2; }
+    .badge-gnd { background: #334155; color: #94a3b8; }
+    .badge-buzz { background: #7c3aed; color: #f5f3ff; }
+    .badge-ok { background: #15803d; color: #dcfce7; }
+
+    .prop-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-size: 0.85rem;
+    }
+    .prop-label { color: var(--text-muted); }
+    .prop-val { color: #f8fafc; font-weight: 600; text-align: right; }
+
+    .alert-panel {
+      margin-top: 10px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      line-height: 1.35;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #7dd3fc;
+    }
+
+    /* Selector de Cables Directo */
+    .cable-picker-box {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+    .cable-picker-box h3 {
+      font-size: 0.88rem;
+      color: #38bdf8;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .cable-item-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid #1e293b;
+      color: #e2e8f0;
+      padding: 7px 10px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .cable-item-btn:hover {
+      background: rgba(56, 189, 248, 0.1);
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+    .cable-item-btn.selected-btn {
+      background: rgba(34, 197, 94, 0.15);
+      border-color: #22c55e;
+      color: #ffffff;
+      font-weight: 700;
+    }
+    .color-pill {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.4);
+    }
+
+    /* Checklist de Conexión Física */
+    .checklist-box {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .checklist-box h3 {
+      font-size: 0.95rem;
+      color: #38bdf8;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.02);
+      font-size: 0.81rem;
+      cursor: pointer;
+    }
+    .check-item input[type="checkbox"] { margin-top: 3px; cursor: pointer; }
+
+    /* Botón de Sonido */
+    .btn-test-sound {
+      width: 100%;
+      margin-top: 10px;
+      background: #7c3aed;
+      color: #ffffff;
+      border: none;
+      padding: 9px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+    .btn-test-sound:hover { background: #6d28d9; }
+
+    /* Botón de Código en la Esquina Superior Derecha */
+    .btn-code-toggle {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border: 1.5px solid #38bdf8;
+      color: #38bdf8;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.86rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+      transition: all 0.2s;
+    }
+    .btn-code-toggle:hover {
+      background: #38bdf8;
+      color: #0b1120;
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.5);
+    }
+    .btn-code-toggle.active {
+      background: #22c55e;
+      border-color: #22c55e;
+      color: #052e16;
+      box-shadow: 0 0 18px rgba(34, 197, 94, 0.5);
+    }
+
+    /* Vista de Código */
+    .code-view-container {
+      background: #0d1424;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .code-box-pre {
+      background: #050811;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 18px;
+      color: #e2e8f0;
+      font-family: Consolas, "Fira Code", monospace;
+      font-size: 0.86rem;
+      line-height: 1.5;
+      overflow-x: auto;
+      max-height: 540px;
+      white-space: pre;
+    }
+    .btn-copy-code {
+      background: #1e293b;
+      border: 1px solid #38bdf8;
+      color: #38bdf8;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-copy-code:hover { background: #38bdf8; color: #000; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div>
+      <h1>⚡ ESP32</h1>
+    </div>
+
+    <!-- Pestañas y Botón de Código en la Esquina Derecha -->
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <div class="tabs-bar">
+        <button class="tab-btn active" id="tabAll">🖥️ Vista Completa Integrada</button>
+        <button class="tab-btn" id="tabEsp">🕹️ Solo ESP32 & Shield</button>
+        <button class="tab-btn" id="tabProto">🥖 Solo Doble Protoboard</button>
+      </div>
+
+      <!-- BOTÓN DE CÓDIGO CON EL SÍMBOLO TÍPICO </> -->
+      <button class="btn-code-toggle" id="btnCodeToggle" title="Ver código fuente Arduino y explicación">
+        <span style="font-family: monospace; font-size: 1.15rem; font-weight: 900; letter-spacing: -1px;">&lt;/&gt;</span>
+        <span>Código Arduino</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- CONTENEDOR 1: VISTA DE CIRCUITO Y PROTOBOARD -->
+  <div id="circuitViewSection">
+    <!-- Workspace Principal -->
+    <div class="workspace-layout">
+    <div class="circuit-main-col">
+    <!-- Lienzo SVG con conexiones precisas punto a punto -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title" id="canvasTitle">
+          <span>📐 Circuito Físico</span>
+        </div>
+        <small style="color: var(--text-muted); font-size: 0.78rem;">
+          Haz click en cualquier cable para ver su recorrido de origen a fin
+        </small>
+      </div>
+
+      <div class="canvas-box">
+        <svg id="mainSvg" class="main-svg" viewBox="0 0 2400 940" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="shieldBg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#181c24"/>
+              <stop offset="100%" stop-color="#0f1217"/>
+            </linearGradient>
+            <linearGradient id="metalGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#94a3b8"/>
+              <stop offset="50%" stop-color="#cbd5e1"/>
+              <stop offset="100%" stop-color="#64748b"/>
+            </linearGradient>
+            <linearGradient id="buzzerPcb" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#1e3a8a"/>
+              <stop offset="100%" stop-color="#172554"/>
+            </linearGradient>
+            <filter id="glowLight">
+              <feGaussianBlur stdDeviation="3" result="b"/>
+              <feComposite in="SourceGraphic" in2="b" operator="over"/>
+            </filter>
+            <filter id="activeGlow">
+              <feGaussianBlur stdDeviation="5" result="c"/>
+              <feComposite in="SourceGraphic" in2="c" operator="over"/>
+            </filter>
+          </defs>
+
+          <!-- ========================================== -->
+          <!-- BLOQUE 1: ESP32 + SHIELD (LADO IZQUIERDO)   -->
+          <!-- ========================================== -->
+          <g id="gEsp32Shield" transform="translate(30, 30)">
+            <rect width="660" height="870" rx="18" fill="url(#shieldBg)" stroke="#2b3648" stroke-width="2.5"/>
+            <!-- Tornillos -->
+            <circle cx="30" cy="30" r="12" fill="#090d14" stroke="#475569" stroke-width="2"/>
+            <circle cx="630" cy="30" r="12" fill="#090d14" stroke="#475569" stroke-width="2"/>
+            <circle cx="30" cy="840" r="12" fill="#090d14" stroke="#475569" stroke-width="2"/>
+            <circle cx="630" cy="840" r="12" fill="#090d14" stroke="#475569" stroke-width="2"/>
+
+            <text x="330" y="855" fill="#475569" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="2">
+              ESP32 EXPANSION BOARD • 30 PIN BREAKOUT
+            </text>
+
+            <!-- Puertos superiores -->
+            <g transform="translate(50, 15)">
+              <rect width="55" height="80" rx="6" fill="#0f172a" stroke="#475569" stroke-width="1.5"/>
+              <circle cx="27" cy="45" r="10" fill="#020617" stroke="#64748b" stroke-width="2"/>
+              <text x="27" y="90" fill="#94a3b8" font-size="8" font-weight="bold" text-anchor="middle">DC6.5-16V</text>
+            </g>
+            <g transform="translate(160, 35)">
+              <rect width="48" height="30" rx="5" fill="#1e293b" stroke="#475569"/>
+              <rect x="8" y="7" width="32" height="16" rx="3" fill="#0f172a"/>
+              <text x="24" y="42" fill="#64748b" font-size="8" text-anchor="middle">USB-C</text>
+            </g>
+            <g id="svgJumperGroup" transform="translate(440, 32)" style="cursor: pointer;">
+              <rect width="70" height="42" rx="5" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5"/>
+              <circle cx="15" cy="21" r="3" fill="#cbd5e1"/>
+              <circle cx="35" cy="21" r="3" fill="#cbd5e1"/>
+              <circle cx="55" cy="21" r="3" fill="#cbd5e1"/>
+              <rect id="svgJumperRect" x="25" y="12" width="22" height="18" rx="3" fill="#eab308" stroke="#ca8a04"/>
+              <text x="15" y="8" fill="#94a3b8" font-size="8" text-anchor="middle">3.3V</text>
+              <text x="35" y="8" fill="#f59e0b" font-size="8" font-weight="bold" text-anchor="middle">V</text>
+              <text x="55" y="8" fill="#94a3b8" font-size="8" text-anchor="middle">5V</text>
+              <text x="35" y="38" fill="#cbd5e1" font-size="8" font-weight="bold" text-anchor="middle">JUMP</text>
+            </g>
+            <g transform="translate(530, 32)">
+              <rect width="46" height="36" rx="4" fill="#1e293b" stroke="#475569"/>
+              <text x="23" y="48" fill="#94a3b8" font-size="8" text-anchor="middle">USB5V</text>
+            </g>
+            <g transform="translate(595, 40)">
+              <circle cx="6" cy="6" r="4.5" fill="#ef4444" filter="url(#glowLight)"/>
+              <text x="6" y="20" fill="#94a3b8" font-size="7" font-weight="bold" text-anchor="middle">PWR</text>
+            </g>
+
+            <!-- ESP32 Central -->
+            <g transform="translate(205, 100)">
+              <rect width="250" height="660" rx="8" fill="#0d131f" stroke="#334155" stroke-width="2"/>
+              <rect x="90" y="-10" width="70" height="26" rx="3" fill="#475569"/>
+              <rect x="100" y="-4" width="50" height="14" rx="2" fill="#090d14"/>
+              <g transform="translate(25, 30)">
+                <rect width="22" height="22" rx="3" fill="#334155"/><circle cx="11" cy="11" r="6" fill="#cbd5e1"/>
+                <text x="11" y="32" fill="#94a3b8" font-size="8" font-weight="bold" text-anchor="middle">BOOT</text>
+              </g>
+              <g transform="translate(203, 30)">
+                <rect width="22" height="22" rx="3" fill="#334155"/><circle cx="11" cy="11" r="6" fill="#cbd5e1"/>
+                <text x="11" y="32" fill="#94a3b8" font-size="8" font-weight="bold" text-anchor="middle">EN</text>
+              </g>
+              <rect x="90" y="65" width="70" height="38" rx="3" fill="#1e293b" stroke="#334155"/>
+              <text x="125" y="88" fill="#94a3b8" font-size="9" font-weight="bold" text-anchor="middle">CH340C</text>
+              <circle cx="45" cy="125" r="3.5" fill="#ef4444" filter="url(#glowLight)"/>
+              <text x="45" y="140" fill="#94a3b8" font-size="7" text-anchor="middle">PWR</text>
+              <circle cx="85" cy="125" r="3.5" fill="#38bdf8" filter="url(#glowLight)"/>
+              <text x="85" y="140" fill="#38bdf8" font-size="7" text-anchor="middle">D2</text>
+              <rect x="25" y="190" width="200" height="240" rx="6" fill="url(#metalGrad)" stroke="#475569"/>
+              <text x="125" y="240" fill="#0f172a" font-size="19" font-weight="900" text-anchor="middle">ESP-32</text>
+              <text x="125" y="270" fill="#1e293b" font-size="10" font-weight="700" text-anchor="middle">WiFi + BT SoC Inside</text>
+              <rect x="20" y="385" width="160" height="30" rx="3" fill="#0f172a"/>
+              <path d="M 30 400 L 50 392 L 70 408 L 90 392 L 110 408 L 130 392 L 150 400" fill="none" stroke="#ca8a04" stroke-width="2"/>
+
+              <!-- Pines de la placa central ESP32 (Header Izquierdo y Derecho con silkscreen exacto) -->
+              <g id="espBoardHeaders"></g>
+            </g>
+
+            <!-- Cabecera Auxiliar 4 Pines (Lado Izquierdo Arriba: D22, D21, VCC, GND) -->
+            <g transform="translate(60, 115)">
+              <rect width="70" height="110" rx="5" fill="#090d14" stroke="#475569" stroke-width="1.2"/>
+              <text x="75" y="22" fill="#cbd5e1" font-size="10" font-weight="bold" font-family="monospace">D22</text>
+              <text x="75" y="48" fill="#cbd5e1" font-size="10" font-weight="bold" font-family="monospace">D21</text>
+              <text x="75" y="74" fill="#f87171" font-size="10" font-weight="bold" font-family="monospace">VCC</text>
+              <text x="75" y="100" fill="#38bdf8" font-size="10" font-weight="bold" font-family="monospace">GND</text>
+              <!-- 4 filas x 2 pines macho -->
+              <circle cx="20" cy="18" r="4.5" fill="#0284c7" stroke="#38bdf8" stroke-width="1.5"/>
+              <circle cx="45" cy="18" r="4.5" fill="#0284c7" stroke="#38bdf8" stroke-width="1.5"/>
+              <circle cx="20" cy="44" r="4.5" fill="#0284c7" stroke="#38bdf8" stroke-width="1.5"/>
+              <circle cx="45" cy="44" r="4.5" fill="#0284c7" stroke="#38bdf8" stroke-width="1.5"/>
+              <circle cx="20" cy="70" r="4.5" fill="#dc2626" stroke="#fca5a5" stroke-width="1.5"/>
+              <circle cx="45" cy="70" r="4.5" fill="#dc2626" stroke="#fca5a5" stroke-width="1.5"/>
+              <circle cx="20" cy="96" r="4.5" fill="#0f172a" stroke="#64748b" stroke-width="1.8"/>
+              <circle cx="45" cy="96" r="4.5" fill="#0f172a" stroke="#64748b" stroke-width="1.8"/>
+            </g>
+
+            <!-- Bloque de 8 Pines GND Exclusivo (Lado Derecho Arriba: 2 filas x 4 columnas) -->
+            <g transform="translate(515, 110)">
+              <polygon points="10,-6 100,-6 115,10 115,100 100,116 10,116 -5,100 -5,10" fill="#090d14" stroke="#ffffff" stroke-width="1.5"/>
+              <text x="-12" y="58" fill="#38bdf8" font-size="11" font-weight="bold" font-family="monospace" text-anchor="end">GND</text>
+              <text x="122" y="32" fill="#ef4444" font-size="9" font-weight="bold" font-family="monospace">5V</text>
+              <text x="122" y="80" fill="#38bdf8" font-size="9" font-weight="bold" font-family="monospace">3.3V</text>
+              <!-- 4 columnas x 2 filas = 8 pines de GND -->
+              <circle cx="20" cy="20" r="4.5" fill="#0f172a" stroke="#64748b" stroke-width="1.8"/>
+              <circle cx="44" cy="20" r="4.5" fill="#0f172a" stroke="#64748b" stroke-width="1.8"/>
+              <circle cx="68" cy="20" r="4.5" fill="#0f172a" stroke="#64748b" stroke-width="1.8"/>
+              <circle cx="92" cy="20" r="4.5" fill="#0f172a" stroke="#64748b" stroke-width="1.8"/>
+
+              <circle cx="20" cy="48" r="4.5" fill="#0f172a" stroke="#64748b" stroke-width="1.8"/>
+              <circle cx="44" cy="48" r="4.5" fill="#0f172a" stroke="#64748b" stroke-width="1.8"/>
+              <circle cx="68" cy="48" r="4.5" fill="#0f172a" stroke="#64748b" stroke-width="1.8"/>
+              <circle cx="92" cy="48" r="4.5" fill="#0f172a" stroke="#64748b" stroke-width="1.8"/>
+
+              <circle cx="20" cy="76" r="4.5" fill="#0f172a" stroke="#64748b" stroke-width="1.8"/>
+              <circle cx="44" cy="76" r="4.5" fill="#0f172a" stroke="#64748b" stroke-width="1.8"/>
+              <circle cx="68" cy="76" r="4.5" fill="#0f172a" stroke="#64748b" stroke-width="1.8"/>
+              <circle cx="92" cy="76" r="4.5" fill="#0f172a" stroke="#64748b" stroke-width="1.8"/>
+            </g>
+
+            <!-- LADO IZQUIERDO TRIPLETAS [ S | V | G ] (G pegada al chip, V medio, S afuera) -->
+            <g id="svgLeftTriplets" transform="translate(45, 250)"></g>
+            <!-- LADO DERECHO TRIPLETAS [ G | V | S ] (G pegada al chip, V medio, S afuera) -->
+            <g id="svgRightTriplets" transform="translate(505, 250)"></g>
+          </g>
+
+          <!-- ======================================================== -->
+          <!-- BLOQUE 2: DOBLE PROTOBOARD MODULAR (60 FILAS)             -->
+          <!-- ======================================================== -->
+          <g id="gProtoboard" transform="translate(730, 30)">
+            <rect width="800" height="870" rx="14" fill="#f8fafc" stroke="#94a3b8" stroke-width="3"/>
+            <rect x="-8" y="220" width="8" height="40" rx="3" fill="#cbd5e1"/>
+            <rect x="-8" y="620" width="8" height="40" rx="3" fill="#cbd5e1"/>
+            <rect x="800" y="220" width="8" height="40" rx="3" fill="#cbd5e1"/>
+            <rect x="800" y="620" width="8" height="40" rx="3" fill="#cbd5e1"/>
+
+            <!-- Rieles Laterales Izquierdos (- y +) -->
+            <line x1="30" y1="55" x2="30" y2="815" stroke="#0284c7" stroke-width="2.5"/>
+            <text x="30" y="45" fill="#0284c7" font-size="16" font-weight="900" text-anchor="middle">-</text>
+            <text x="30" y="835" fill="#0284c7" font-size="16" font-weight="900" text-anchor="middle">-</text>
+
+            <line x1="55" y1="55" x2="55" y2="815" stroke="#ef4444" stroke-width="2.5"/>
+            <text x="55" y="45" fill="#ef4444" font-size="14" font-weight="900" text-anchor="middle">+</text>
+            <text x="55" y="835" fill="#ef4444" font-size="14" font-weight="900" text-anchor="middle">+</text>
+
+            <!-- RIELES CENTRALES DOBLES -->
+            <g transform="translate(370, 0)">
+              <rect x="0" y="45" width="70" height="780" fill="#f1f5f9" stroke="#cbd5e1"/>
+              <line x1="12" y1="55" x2="12" y2="815" stroke="#0284c7" stroke-width="2.5"/>
+              <text x="12" y="45" fill="#0284c7" font-size="14" font-weight="900" text-anchor="middle">-</text>
+              <line x1="28" y1="55" x2="28" y2="815" stroke="#ef4444" stroke-width="2.5"/>
+              <text x="28" y="45" fill="#ef4444" font-size="13" font-weight="900" text-anchor="middle">+</text>
+              <line x1="44" y1="55" x2="44" y2="815" stroke="#0284c7" stroke-width="2.5"/>
+              <text x="44" y="45" fill="#0284c7" font-size="14" font-weight="900" text-anchor="middle">-</text>
+              <line x1="60" y1="55" x2="60" y2="815" stroke="#ef4444" stroke-width="2.5"/>
+              <text x="60" y="45" fill="#ef4444" font-size="13" font-weight="900" text-anchor="middle">+</text>
+            </g>
+
+            <!-- Rieles Laterales Derechos (- y +) -->
+            <line x1="745" y1="55" x2="745" y2="815" stroke="#0284c7" stroke-width="2.5"/>
+            <text x="745" y="45" fill="#0284c7" font-size="16" font-weight="900" text-anchor="middle">-</text>
+            <line x1="770" y1="55" x2="770" y2="815" stroke="#ef4444" stroke-width="2.5"/>
+            <text x="770" y="45" fill="#ef4444" font-size="14" font-weight="900" text-anchor="middle">+</text>
+
+            <!-- Columnas A-F Bloque Izquierdo y Derecho -->
+            <g font-size="10" font-weight="700" fill="#64748b" text-anchor="middle">
+              <text x="95" y="42">A</text>
+              <text x="135" y="42">B</text>
+              <text x="175" y="42">C</text>
+              <text x="215" y="42">D</text>
+              <text x="255" y="42">E</text>
+              <text x="295" y="42">F</text>
+
+              <text x="475" y="42">A</text>
+              <text x="515" y="42">B</text>
+              <text x="555" y="42">C</text>
+              <text x="595" y="42">D</text>
+              <text x="635" y="42">E</text>
+              <text x="675" y="42">F</text>
+            </g>
+
+            <!-- Canaletas -->
+            <rect x="325" y="55" width="16" height="760" fill="#e2e8f0" stroke="#cbd5e1"/>
+            <rect x="705" y="55" width="16" height="760" fill="#e2e8f0" stroke="#cbd5e1"/>
+
+            <!-- Orificios generados dinámicamente -->
+            <g id="protoHolesGroup"></g>
+
+            <!-- ======================================================== -->
+            <!-- 6 FOQUITOS LED CON RESISTENCIAS DE 220Ω (FILAS 6 A 21)    -->
+            <!-- Conectados en la Protoboard según indicación del usuario  -->
+            <!-- Fila AMARILLA (PWM de PCA9685 Canales 4 al 9) ➔ Resistencia -->
+            <!-- Resistencia ➔ Ánodo LED (+) | Cátodo LED (-) ➔ Riel (-)    -->
+            <!-- ======================================================== -->
+            <g id="gLedsBreadboard">
+              <!-- LED 1: Fila 6 (CH 4) - Rojo -->
+              <g id="gLed1" transform="translate(0, 0)">
+                <!-- Resistencia 220Ω (Columna D a B: x=215 a x=135, cy=122.5) -->
+                <line x1="215" y1="122.5" x2="135" y2="122.5" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round"/>
+                <rect x="155" y="116.5" width="40" height="12" rx="3" fill="#d97706" stroke="#b45309"/>
+                <line x1="163" y1="116.5" x2="163" y2="128.5" stroke="#dc2626" stroke-width="2"/>
+                <line x1="171" y1="116.5" x2="171" y2="128.5" stroke="#dc2626" stroke-width="2"/>
+                <line x1="179" y1="116.5" x2="179" y2="128.5" stroke="#92400e" stroke-width="2"/>
+                <line x1="187" y1="116.5" x2="187" y2="128.5" stroke="#fbbf24" stroke-width="1.5"/>
+                <!-- LED Rojo 5mm (Ánodo en Col B x=135, Cátodo a Riel (-) x=30) -->
+                <line x1="135" y1="122.5" x2="80" y2="122.5" stroke="#94a3b8" stroke-width="2"/>
+                <line id="wire_led1_gnd" class="wire-interactive" data-cable-id="led1_gnd"
+                      x1="80" y1="122.5" x2="30" y2="122.5" stroke="#0284c7" stroke-width="3.5" stroke-linecap="round"/>
+                <circle id="pt_led1_cat" class="wire-endpoint" cx="80" cy="122.5" r="3.5"/>
+                <circle id="pt_led1_rail" class="wire-endpoint" cx="30" cy="122.5" r="3.5"/>
+                <circle cx="105" cy="122.5" r="9" fill="#ef4444" stroke="#dc2626" stroke-width="1.5" filter="url(#glowLight)"/>
+                <circle cx="102" cy="119.5" r="3" fill="#fca5a5"/>
+                <text x="228" y="126" fill="#f87171" font-size="8.5" font-weight="bold" font-family="monospace">LED 1 (CH4)</text>
+              </g>
+
+              <!-- LED 2: Fila 9 (CH 5) - Verde -->
+              <g id="gLed2" transform="translate(0, 0)">
+                <line x1="215" y1="160" x2="135" y2="160" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round"/>
+                <rect x="155" y="154" width="40" height="12" rx="3" fill="#d97706" stroke="#b45309"/>
+                <line x1="163" y1="154" x2="163" y2="166" stroke="#dc2626" stroke-width="2"/>
+                <line x1="171" y1="154" x2="171" y2="166" stroke="#dc2626" stroke-width="2"/>
+                <line x1="179" y1="154" x2="179" y2="166" stroke="#92400e" stroke-width="2"/>
+                <line x1="187" y1="154" x2="187" y2="166" stroke="#fbbf24" stroke-width="1.5"/>
+                <line x1="135" y1="160" x2="80" y2="160" stroke="#94a3b8" stroke-width="2"/>
+                <line id="wire_led2_gnd" class="wire-interactive" data-cable-id="led2_gnd"
+                      x1="80" y1="160" x2="30" y2="160" stroke="#0284c7" stroke-width="3.5" stroke-linecap="round"/>
+                <circle id="pt_led2_cat" class="wire-endpoint" cx="80" cy="160" r="3.5"/>
+                <circle id="pt_led2_rail" class="wire-endpoint" cx="30" cy="160" r="3.5"/>
+                <circle cx="105" cy="160" r="9" fill="#22c55e" stroke="#16a34a" stroke-width="1.5" filter="url(#glowLight)"/>
+                <circle cx="102" cy="157" r="3" fill="#86efac"/>
+                <text x="228" y="163.5" fill="#4ade80" font-size="8.5" font-weight="bold" font-family="monospace">LED 2 (CH5)</text>
+              </g>
+
+              <!-- LED 3: Fila 12 (CH 6) - Amarillo -->
+              <g id="gLed3" transform="translate(0, 0)">
+                <line x1="215" y1="197.5" x2="135" y2="197.5" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round"/>
+                <rect x="155" y="191.5" width="40" height="12" rx="3" fill="#d97706" stroke="#b45309"/>
+                <line x1="163" y1="191.5" x2="163" y2="203.5" stroke="#dc2626" stroke-width="2"/>
+                <line x1="171" y1="191.5" x2="171" y2="203.5" stroke="#dc2626" stroke-width="2"/>
+                <line x1="179" y1="191.5" x2="179" y2="203.5" stroke="#92400e" stroke-width="2"/>
+                <line x1="187" y1="191.5" x2="187" y2="203.5" stroke="#fbbf24" stroke-width="1.5"/>
+                <line x1="135" y1="197.5" x2="80" y2="197.5" stroke="#94a3b8" stroke-width="2"/>
+                <line id="wire_led3_gnd" class="wire-interactive" data-cable-id="led3_gnd"
+                      x1="80" y1="197.5" x2="30" y2="197.5" stroke="#0284c7" stroke-width="3.5" stroke-linecap="round"/>
+                <circle id="pt_led3_cat" class="wire-endpoint" cx="80" cy="197.5" r="3.5"/>
+                <circle id="pt_led3_rail" class="wire-endpoint" cx="30" cy="197.5" r="3.5"/>
+                <circle cx="105" cy="197.5" r="9" fill="#eab308" stroke="#ca8a04" stroke-width="1.5" filter="url(#glowLight)"/>
+                <circle cx="102" cy="194.5" r="3" fill="#fef08a"/>
+                <text x="228" y="201" fill="#facc15" font-size="8.5" font-weight="bold" font-family="monospace">LED 3 (CH6)</text>
+              </g>
+
+              <!-- LED 4: Fila 15 (CH 7) - Azul -->
+              <g id="gLed4" transform="translate(0, 0)">
+                <line x1="215" y1="235" x2="135" y2="235" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round"/>
+                <rect x="155" y="229" width="40" height="12" rx="3" fill="#d97706" stroke="#b45309"/>
+                <line x1="163" y1="229" x2="163" y2="241" stroke="#dc2626" stroke-width="2"/>
+                <line x1="171" y1="229" x2="171" y2="241" stroke="#dc2626" stroke-width="2"/>
+                <line x1="179" y1="229" x2="179" y2="241" stroke="#92400e" stroke-width="2"/>
+                <line x1="187" y1="229" x2="187" y2="241" stroke="#fbbf24" stroke-width="1.5"/>
+                <line x1="135" y1="235" x2="80" y2="235" stroke="#94a3b8" stroke-width="2"/>
+                <line id="wire_led4_gnd" class="wire-interactive" data-cable-id="led4_gnd"
+                      x1="80" y1="235" x2="30" y2="235" stroke="#0284c7" stroke-width="3.5" stroke-linecap="round"/>
+                <circle id="pt_led4_cat" class="wire-endpoint" cx="80" cy="235" r="3.5"/>
+                <circle id="pt_led4_rail" class="wire-endpoint" cx="30" cy="235" r="3.5"/>
+                <circle cx="105" cy="235" r="9" fill="#0284c7" stroke="#0369a1" stroke-width="1.5" filter="url(#glowLight)"/>
+                <circle cx="102" cy="232" r="3" fill="#7dd3fc"/>
+                <text x="228" y="238.5" fill="#38bdf8" font-size="8.5" font-weight="bold" font-family="monospace">LED 4 (CH7)</text>
+              </g>
+
+              <!-- LED 5: Fila 18 (CH 8) - Blanco -->
+              <g id="gLed5" transform="translate(0, 0)">
+                <line x1="215" y1="272.5" x2="135" y2="272.5" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round"/>
+                <rect x="155" y="266.5" width="40" height="12" rx="3" fill="#d97706" stroke="#b45309"/>
+                <line x1="163" y1="266.5" x2="163" y2="278.5" stroke="#dc2626" stroke-width="2"/>
+                <line x1="171" y1="266.5" x2="171" y2="278.5" stroke="#dc2626" stroke-width="2"/>
+                <line x1="179" y1="266.5" x2="179" y2="278.5" stroke="#92400e" stroke-width="2"/>
+                <line x1="187" y1="266.5" x2="187" y2="278.5" stroke="#fbbf24" stroke-width="1.5"/>
+                <line x1="135" y1="272.5" x2="80" y2="272.5" stroke="#94a3b8" stroke-width="2"/>
+                <line id="wire_led5_gnd" class="wire-interactive" data-cable-id="led5_gnd"
+                      x1="80" y1="272.5" x2="30" y2="272.5" stroke="#0284c7" stroke-width="3.5" stroke-linecap="round"/>
+                <circle id="pt_led5_cat" class="wire-endpoint" cx="80" cy="272.5" r="3.5"/>
+                <circle id="pt_led5_rail" class="wire-endpoint" cx="30" cy="272.5" r="3.5"/>
+                <circle cx="105" cy="272.5" r="9" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" filter="url(#glowLight)"/>
+                <circle cx="102" cy="269.5" r="3" fill="#ffffff"/>
+                <text x="228" y="276" fill="#f8fafc" font-size="8.5" font-weight="bold" font-family="monospace">LED 5 (CH8)</text>
+              </g>
+
+              <!-- LED 6: Fila 21 (CH 9) - Naranja -->
+              <g id="gLed6" transform="translate(0, 0)">
+                <line x1="215" y1="310" x2="135" y2="310" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round"/>
+                <rect x="155" y="304" width="40" height="12" rx="3" fill="#d97706" stroke="#b45309"/>
+                <line x1="163" y1="304" x2="163" y2="316" stroke="#dc2626" stroke-width="2"/>
+                <line x1="171" y1="304" x2="171" y2="316" stroke="#dc2626" stroke-width="2"/>
+                <line x1="179" y1="304" x2="179" y2="316" stroke="#92400e" stroke-width="2"/>
+                <line x1="187" y1="304" x2="187" y2="316" stroke="#fbbf24" stroke-width="1.5"/>
+                <line x1="135" y1="310" x2="80" y2="310" stroke="#94a3b8" stroke-width="2"/>
+                <line id="wire_led6_gnd" class="wire-interactive" data-cable-id="led6_gnd"
+                      x1="80" y1="310" x2="30" y2="310" stroke="#0284c7" stroke-width="3.5" stroke-linecap="round"/>
+                <circle id="pt_led6_cat" class="wire-endpoint" cx="80" cy="310" r="3.5"/>
+                <circle id="pt_led6_rail" class="wire-endpoint" cx="30" cy="310" r="3.5"/>
+                <circle cx="105" cy="310" r="9" fill="#f97316" stroke="#ea580c" stroke-width="1.5" filter="url(#glowLight)"/>
+                <circle cx="102" cy="307" r="3" fill="#fdba74"/>
+                <text x="228" y="313.5" fill="#fb923c" font-size="8.5" font-weight="bold" font-family="monospace">LED 6 (CH9)</text>
+              </g>
+            </g>
+
+            <!-- 5 BOTONES JUKEBOX (FILAS 42, 46, 50, 54, 58 STRADDLING CANALETA CENTRAL) -->
+            <!-- BOTÓN 1 (Fila 42): Noche de Paz (GPIO 18) -->
+            <g id="gBtn1" transform="translate(333, 572.5)" style="cursor: pointer;">
+              <rect x="-35" y="-12" width="70" height="24" rx="4" fill="#1e293b" stroke="#f97316" stroke-width="1.8"/>
+              <circle cx="0" cy="0" r="8" fill="#ef4444" stroke="#991b1b" stroke-width="1.5"/>
+              <text x="0" y="-16" fill="#fb923c" font-size="8.5" font-weight="900" text-anchor="middle">BTN 1: NOCHE (D18)</text>
+            </g>
+
+            <!-- BOTÓN 2 (Fila 46): Super Mario (GPIO 13) -->
+            <g id="gBtn2" transform="translate(333, 622.5)" style="cursor: pointer;">
+              <rect x="-35" y="-12" width="70" height="24" rx="4" fill="#1e293b" stroke="#eab308" stroke-width="1.8"/>
+              <circle cx="0" cy="0" r="8" fill="#facc15" stroke="#ca8a04" stroke-width="1.5"/>
+              <text x="0" y="-16" fill="#fde047" font-size="8.5" font-weight="900" text-anchor="middle">BTN 2: MARIO (D13)</text>
+            </g>
+
+            <!-- BOTÓN 3 (Fila 50): Star Wars (GPIO 12) -->
+            <g id="gBtn3" transform="translate(333, 672.5)" style="cursor: pointer;">
+              <rect x="-35" y="-12" width="70" height="24" rx="4" fill="#1e293b" stroke="#38bdf8" stroke-width="1.8"/>
+              <circle cx="0" cy="0" r="8" fill="#38bdf8" stroke="#0284c7" stroke-width="1.5"/>
+              <text x="0" y="-16" fill="#7dd3fc" font-size="8.5" font-weight="900" text-anchor="middle">BTN 3: STAR WARS (D12)</text>
+            </g>
+
+            <!-- BOTÓN 4 (Fila 54): Piratas del Caribe (GPIO 14) -->
+            <g id="gBtn4" transform="translate(333, 722.5)" style="cursor: pointer;">
+              <rect x="-35" y="-12" width="70" height="24" rx="4" fill="#1e293b" stroke="#22c55e" stroke-width="1.8"/>
+              <circle cx="0" cy="0" r="8" fill="#4ade80" stroke="#15803d" stroke-width="1.5"/>
+              <text x="0" y="-16" fill="#86efac" font-size="8.5" font-weight="900" text-anchor="middle">BTN 4: PIRATAS (D14)</text>
+            </g>
+
+            <!-- BOTÓN 5 (Fila 58): Tetris Theme (GPIO 27) -->
+            <g id="gBtn5" transform="translate(333, 772.5)" style="cursor: pointer;">
+              <rect x="-35" y="-12" width="70" height="24" rx="4" fill="#1e293b" stroke="#ec4899" stroke-width="1.8"/>
+              <circle cx="0" cy="0" r="8" fill="#f472b6" stroke="#be185d" stroke-width="1.5"/>
+              <text x="0" y="-16" fill="#fbcfe8" font-size="8.5" font-weight="900" text-anchor="middle">BTN 5: TETRIS (D27)</text>
+            </g>
+          </g>
+
+          <!-- ======================================================== -->
+          <!-- BLOQUE 3B: PANTALLA LCD 1602 CON MÓDULO I2C (HW-61)      -->
+          <!-- Reubicada Arriba a la Derecha: translate(1680, 40)        -->
+          <!-- 4 Pines I2C: GND, VCC, SDA, SCL                          -->
+          <!-- ======================================================== -->
+          <g id="gLcd1602Module" transform="translate(1680, 40)">
+            <rect width="520" height="210" rx="10" fill="#064e3b" stroke="#10b981" stroke-width="2.5"/>
+            <circle cx="16" cy="16" r="6" fill="#0f172a" stroke="#cbd5e1" stroke-width="1.5"/>
+            <circle cx="504" cy="16" r="6" fill="#0f172a" stroke="#cbd5e1" stroke-width="1.5"/>
+            <circle cx="16" cy="194" r="6" fill="#0f172a" stroke="#cbd5e1" stroke-width="1.5"/>
+            <circle cx="504" cy="194" r="6" fill="#0f172a" stroke="#cbd5e1" stroke-width="1.5"/>
+
+            <!-- Marco Metálico del Display LCD -->
+            <rect x="55" y="20" width="410" height="115" rx="6" fill="#0f172a" stroke="#475569" stroke-width="2"/>
+            <rect x="70" y="30" width="380" height="95" rx="4" fill="#0284c7" stroke="#38bdf8" stroke-width="1.5"/>
+
+            <!-- Texto Activo Sincronizado en Pantalla LCD -->
+            <rect x="80" y="38" width="360" height="36" rx="2" fill="#0369a1"/>
+            <text x="260" y="62" fill="#ffffff" font-size="18" font-family="'Courier New', monospace" font-weight="900" text-anchor="middle" letter-spacing="3">
+              NOCHE DE PAZ 🌟
+            </text>
+            <rect x="80" y="80" width="360" height="36" rx="2" fill="#0369a1"/>
+            <text x="260" y="104" fill="#e0f2fe" font-size="17" font-family="'Courier New', monospace" font-weight="900" text-anchor="middle" letter-spacing="2">
+              JUKEBOX 5 TEMAS 🎶
+            </text>
+
+            <!-- Submódulo I2C Backpack HW-61 (Detrás) -->
+            <g transform="translate(110, 145)">
+              <rect width="300" height="60" rx="6" fill="#090d14" stroke="#eab308" stroke-width="1.8"/>
+              <text x="150" y="24" fill="#facc15" font-size="10.5" font-weight="bold" text-anchor="middle">HW-61 I2C INTERFACE (0x27)</text>
+              <text x="150" y="44" fill="#94a3b8" font-size="8.5" font-family="monospace" text-anchor="middle">SDA en D21 | SCL en D22</text>
+            </g>
+
+            <!-- Cabecera de 4 Pines I2C (Lado Izquierdo) -->
+            <!-- cy: GND=45, VCC=75, SDA=105, SCL=135 -->
+            <g transform="translate(-16, 20)">
+              <rect width="28" height="125" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1.5"/>
+              <text x="36" y="28" fill="#38bdf8" font-size="10" font-weight="bold" font-family="monospace">GND</text>
+              <circle id="ep_lcd_gnd" cx="14" cy="25" r="5.5" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+
+              <text x="36" y="58" fill="#ef4444" font-size="10" font-weight="bold" font-family="monospace">VCC</text>
+              <circle id="ep_lcd_vcc" cx="14" cy="55" r="5.5" fill="#dc2626" stroke="#fca5a5" stroke-width="2"/>
+
+              <text x="36" y="88" fill="#22c55e" font-size="10" font-weight="bold" font-family="monospace">SDA</text>
+              <circle id="ep_lcd_sda" cx="14" cy="85" r="5.5" fill="#15803d" stroke="#4ade80" stroke-width="2"/>
+
+              <text x="36" y="118" fill="#eab308" font-size="10" font-weight="bold" font-family="monospace">SCL</text>
+              <circle id="ep_lcd_scl" cx="14" cy="115" r="5.5" fill="#ca8a04" stroke="#fde047" stroke-width="2"/>
+            </g>
+          </g>
+
+          <!-- ======================================================== -->
+          <!-- BLOQUE 3: MÓDULO ZUMBADOR FÍSICO (MH-FMG)                -->
+          <!-- Reubicado a la derecha abajo: translate(1680, 275)        -->
+          <!-- ======================================================== -->
+          <g id="gBuzzerModule" transform="translate(1680, 275)">
+            <rect width="360" height="95" rx="8" fill="url(#buzzerPcb)" stroke="#38bdf8" stroke-width="2"/>
+            <circle cx="60" cy="48" r="32" fill="#090d16" stroke="#334155" stroke-width="2.5"/>
+            <circle cx="60" cy="48" r="6" fill="#020617" stroke="#64748b" stroke-width="1.5"/>
+            <text x="42" y="42" fill="#64748b" font-size="13" font-weight="bold">+</text>
+
+            <text x="160" y="34" fill="#93c5fd" font-size="11" font-weight="bold">MH-FMG BUZZER</text>
+            <text x="160" y="52" fill="#cbd5e1" font-size="9">Pin Señal ➔ D4 del Shield</text>
+            <text x="160" y="68" fill="#94a3b8" font-size="8.5">Alimentación: 5V y Tierra</text>
+
+            <!-- Cabecera de 3 Pines: VCC, I/O, GND (Lado Derecho) -->
+            <g transform="translate(260, 22)">
+              <rect width="85" height="50" rx="4" fill="#0f172a" stroke="#475569"/>
+              <text x="16" y="14" fill="#f87171" font-size="9" font-weight="bold" text-anchor="middle">VCC</text>
+              <text x="42" y="14" fill="#c084fc" font-size="9" font-weight="bold" text-anchor="middle">I/O</text>
+              <text x="68" y="14" fill="#60a5fa" font-size="9" font-weight="bold" text-anchor="middle">GND</text>
+              <circle id="ep_buzz_vcc" cx="16" cy="32" r="5.5" fill="#f8fafc" stroke="#dc2626" stroke-width="2"/>
+              <circle id="ep_buzz_io" cx="42" cy="32" r="5.5" fill="#9333ea" stroke="#c084fc" stroke-width="2"/>
+              <circle id="ep_buzz_gnd" cx="68" cy="32" r="5.5" fill="#2563eb" stroke="#60a5fa" stroke-width="2"/>
+            </g>
+          </g>
+
+          <!-- ======================================================== -->
+          <!-- BLOQUE 3C: MÓDULO CONTROLADOR PCA9685 (AMPLIADO Y NÍTIDO) -->
+          <!-- Reubicado a translate(1680, 395), Ancho: 520, Alto: 300   -->
+          <!-- Textos ordenados sin sobreposición                       -->
+          <!-- ======================================================== -->
+          <g id="gPca9685Module" transform="translate(1680, 395)">
+            <rect width="520" height="300" rx="10" fill="#1e3a8a" stroke="#38bdf8" stroke-width="2.5"/>
+            <circle cx="16" cy="16" r="6" fill="#090d16" stroke="#94a3b8" stroke-width="1.5"/>
+            <circle cx="504" cy="16" r="6" fill="#090d16" stroke="#94a3b8" stroke-width="1.5"/>
+            <circle cx="16" cy="284" r="6" fill="#090d16" stroke="#94a3b8" stroke-width="1.5"/>
+            <circle cx="504" cy="284" r="6" fill="#090d16" stroke="#94a3b8" stroke-width="1.5"/>
+
+            <!-- Título Principal y Subtítulo limpio -->
+            <text x="260" y="24" fill="#ffffff" font-size="13" font-weight="900" font-family="sans-serif" text-anchor="middle" letter-spacing="1">
+              PCA9685 • 16-CHANNEL PWM SERVO DRIVER
+            </text>
+            <text x="260" y="42" fill="#4ade80" font-size="10" font-family="monospace" font-weight="bold" text-anchor="middle">
+              BUS I2C SEPARADO: SDA en D25 | SCL en D26 (0x40)
+            </text>
+
+            <!-- Cabecera Izquierda de 6 Pines I2C -->
+            <!-- cy: GND=20, OE=44, SCL=68, SDA=92, VCC=116, V+=140 -->
+            <g transform="translate(-16, 65)">
+              <rect width="28" height="155" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1.5"/>
+              <text x="36" y="24" fill="#38bdf8" font-size="9.5" font-weight="bold" font-family="monospace">GND</text>
+              <circle id="ep_pca_gnd" cx="14" cy="20" r="5.5" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+
+              <text x="36" y="48" fill="#64748b" font-size="8.5" font-family="monospace">OE</text>
+              <circle cx="14" cy="44" r="4.5" fill="#1e293b" stroke="#64748b"/>
+
+              <text x="36" y="72" fill="#eab308" font-size="9.5" font-weight="bold" font-family="monospace">SCL</text>
+              <circle id="ep_pca_scl" cx="14" cy="68" r="5.5" fill="#ca8a04" stroke="#fde047" stroke-width="2"/>
+
+              <text x="36" y="96" fill="#22c55e" font-size="9.5" font-weight="bold" font-family="monospace">SDA</text>
+              <circle id="ep_pca_sda" cx="14" cy="92" r="5.5" fill="#15803d" stroke="#4ade80" stroke-width="2"/>
+
+              <text x="36" y="120" fill="#ef4444" font-size="9.5" font-weight="bold" font-family="monospace">VCC</text>
+              <circle id="ep_pca_vcc" cx="14" cy="116" r="5.5" fill="#dc2626" stroke="#fca5a5" stroke-width="2"/>
+
+              <text x="36" y="144" fill="#f87171" font-size="8.5" font-family="monospace">V+</text>
+              <circle id="ep_pca_vplus" cx="14" cy="140" r="4.5" fill="#991b1b" stroke="#f87171"/>
+            </g>
+
+            <!-- Chip Central PCA9685 -->
+            <rect x="215" y="75" width="90" height="40" rx="3" fill="#0f172a" stroke="#64748b"/>
+            <text x="260" y="98" fill="#f8fafc" font-size="9" font-weight="bold" font-family="monospace" text-anchor="middle">PCA9685PW</text>
+
+            <!-- Bornera Verde: Alimentación Externa para Servos -->
+            <g transform="translate(210, 135)">
+              <rect width="100" height="52" rx="5" fill="#15803d" stroke="#22c55e" stroke-width="2"/>
+              <text x="50" y="-6" fill="#facc15" font-size="8.5" font-weight="900" text-anchor="middle">ALIMENTACIÓN USB 5V</text>
+              <circle cx="28" cy="24" r="11" fill="#0f172a" stroke="#cbd5e1" stroke-width="2"/>
+              <circle cx="72" cy="24" r="11" fill="#0f172a" stroke="#cbd5e1" stroke-width="2"/>
+              <text x="28" y="44" fill="#f87171" font-size="8.5" font-weight="bold" text-anchor="middle">V+</text>
+              <text x="72" y="44" fill="#38bdf8" font-size="8.5" font-weight="bold" text-anchor="middle">GND</text>
+              <circle id="ep_pca_term_vcc" cx="28" cy="24" r="5.5" fill="#ef4444" stroke="#ffffff" stroke-width="1.5"/>
+              <circle id="ep_pca_term_gnd" cx="72" cy="24" r="5.5" fill="#0284c7" stroke="#ffffff" stroke-width="1.5"/>
+            </g>
+
+            <!-- Entrada de Cable USB Externo a Bornera -->
+            <g transform="translate(220, 205)">
+              <rect width="80" height="22" rx="3" fill="#0f172a" stroke="#64748b"/>
+              <text x="40" y="15" fill="#94a3b8" font-size="7.5" font-weight="bold" text-anchor="middle">CABLE USB 5V</text>
+            </g>
+
+            <!-- 4 BANCOS DE SERVOS (CANALES 0, 1, 2, 3) -->
+            <!-- Layout: Fila Superior = PWM (Amarillo), Media = V+ (Rojo), Inferior = GND (Azul/Negro) -->
+            <g transform="translate(35, 205)">
+              <rect x="-8" y="-12" width="145" height="92" rx="6" fill="#0f172a" stroke="#ca8a04" stroke-width="1.2"/>
+              <text x="65" y="-16" fill="#fbbf24" font-size="8.5" font-weight="bold" text-anchor="middle">4 SERVOS (CH 0..3)</text>
+              <text x="-14" y="14" fill="#eab308" font-size="7.5" font-weight="bold">PWM</text>
+              <text x="-14" y="38" fill="#ef4444" font-size="7.5" font-weight="bold">V+</text>
+              <text x="-14" y="62" fill="#38bdf8" font-size="7.5" font-weight="bold">GND</text>
+
+              <!-- CH0 -->
+              <g id="gPcaChannel0" transform="translate(0, 0)">
+                <rect x="4" y="2" width="24" height="68" rx="3" fill="#090d16" stroke="#38bdf8"/>
+                <text x="16" y="78" fill="#38bdf8" font-size="8.5" font-weight="bold" text-anchor="middle">CH0</text>
+                <circle id="ep_pca_ch0_pwm" cx="16" cy="12" r="4.5" fill="#ca8a04" stroke="#fde047" stroke-width="1.5"/>
+                <circle id="ep_pca_ch0_vcc" cx="16" cy="36" r="4.5" fill="#dc2626" stroke="#fca5a5" stroke-width="1.5"/>
+                <circle id="ep_pca_ch0_gnd" cx="16" cy="60" r="4.5" fill="#0284c7" stroke="#38bdf8" stroke-width="1.5"/>
+              </g>
+
+              <!-- CH1 -->
+              <g id="gPcaChannel1" transform="translate(32, 0)">
+                <rect x="4" y="2" width="24" height="68" rx="3" fill="#090d16" stroke="#22c55e"/>
+                <text x="16" y="78" fill="#4ade80" font-size="8.5" font-weight="bold" text-anchor="middle">CH1</text>
+                <circle id="ep_pca_ch1_pwm" cx="16" cy="12" r="4.5" fill="#ca8a04" stroke="#fde047" stroke-width="1.5"/>
+                <circle id="ep_pca_ch1_vcc" cx="16" cy="36" r="4.5" fill="#dc2626" stroke="#fca5a5" stroke-width="1.5"/>
+                <circle id="ep_pca_ch1_gnd" cx="16" cy="60" r="4.5" fill="#0284c7" stroke="#38bdf8" stroke-width="1.5"/>
+              </g>
+
+              <!-- CH2 -->
+              <g id="gPcaChannel2" transform="translate(64, 0)">
+                <rect x="4" y="2" width="24" height="68" rx="3" fill="#090d16" stroke="#f59e0b"/>
+                <text x="16" y="78" fill="#fbbf24" font-size="8.5" font-weight="bold" text-anchor="middle">CH2</text>
+                <circle id="ep_pca_ch2_pwm" cx="16" cy="12" r="4.5" fill="#ca8a04" stroke="#fde047" stroke-width="1.5"/>
+                <circle id="ep_pca_ch2_vcc" cx="16" cy="36" r="4.5" fill="#dc2626" stroke="#fca5a5" stroke-width="1.5"/>
+                <circle id="ep_pca_ch2_gnd" cx="16" cy="60" r="4.5" fill="#0284c7" stroke="#38bdf8" stroke-width="1.5"/>
+              </g>
+
+              <!-- CH3 -->
+              <g id="gPcaChannel3" transform="translate(96, 0)">
+                <rect x="4" y="2" width="24" height="68" rx="3" fill="#090d16" stroke="#ec4899"/>
+                <text x="16" y="78" fill="#f472b6" font-size="8.5" font-weight="bold" text-anchor="middle">CH3</text>
+                <circle id="ep_pca_ch3_pwm" cx="16" cy="12" r="4.5" fill="#ca8a04" stroke="#fde047" stroke-width="1.5"/>
+                <circle id="ep_pca_ch3_vcc" cx="16" cy="36" r="4.5" fill="#dc2626" stroke="#fca5a5" stroke-width="1.5"/>
+                <circle id="ep_pca_ch3_gnd" cx="16" cy="60" r="4.5" fill="#0284c7" stroke="#38bdf8" stroke-width="1.5"/>
+              </g>
+            </g>
+
+            <!-- 6 BANCOS DE SALIDA LED (CANALES 4 AL 9) -->
+            <g transform="translate(325, 205)">
+              <rect x="-8" y="-12" width="180" height="92" rx="6" fill="#0f172a" stroke="#eab308" stroke-width="1.2"/>
+              <text x="82" y="-16" fill="#facc15" font-size="8.5" font-weight="bold" text-anchor="middle">6 LEDs (CH 4..9)</text>
+              <text x="82" y="78" fill="#94a3b8" font-size="7.5" font-family="monospace" text-anchor="middle">Fila Amarilla ➔ Protoboard</text>
+              <!-- Canales 4 al 9 -->
+              <g transform="translate(0, 0)">
+                <rect x="2" y="2" width="22" height="60" rx="3" fill="#1e293b" stroke="#eab308"/>
+                <text x="13" y="55" fill="#facc15" font-size="7.5" font-weight="bold" text-anchor="middle">4</text>
+                <circle id="ep_pca_ch4_pwm" cx="13" cy="12" r="4" fill="#ca8a04" stroke="#fde047" stroke-width="1.2"/>
+                <circle cx="13" cy="28" r="3.5" fill="#1e293b" stroke="#64748b"/>
+                <circle cx="13" cy="42" r="3.5" fill="#0284c7" stroke="#38bdf8"/>
+              </g>
+              <g transform="translate(26, 0)">
+                <rect x="2" y="2" width="22" height="60" rx="3" fill="#1e293b" stroke="#eab308"/>
+                <text x="13" y="55" fill="#facc15" font-size="7.5" font-weight="bold" text-anchor="middle">5</text>
+                <circle id="ep_pca_ch5_pwm" cx="13" cy="12" r="4" fill="#ca8a04" stroke="#fde047" stroke-width="1.2"/>
+                <circle cx="13" cy="28" r="3.5" fill="#1e293b" stroke="#64748b"/>
+                <circle cx="13" cy="42" r="3.5" fill="#0284c7" stroke="#38bdf8"/>
+              </g>
+              <g transform="translate(52, 0)">
+                <rect x="2" y="2" width="22" height="60" rx="3" fill="#1e293b" stroke="#eab308"/>
+                <text x="13" y="55" fill="#facc15" font-size="7.5" font-weight="bold" text-anchor="middle">6</text>
+                <circle id="ep_pca_ch6_pwm" cx="13" cy="12" r="4" fill="#ca8a04" stroke="#fde047" stroke-width="1.2"/>
+                <circle cx="13" cy="28" r="3.5" fill="#1e293b" stroke="#64748b"/>
+                <circle cx="13" cy="42" r="3.5" fill="#0284c7" stroke="#38bdf8"/>
+              </g>
+              <g transform="translate(78, 0)">
+                <rect x="2" y="2" width="22" height="60" rx="3" fill="#1e293b" stroke="#eab308"/>
+                <text x="13" y="55" fill="#facc15" font-size="7.5" font-weight="bold" text-anchor="middle">7</text>
+                <circle id="ep_pca_ch7_pwm" cx="13" cy="12" r="4" fill="#ca8a04" stroke="#fde047" stroke-width="1.2"/>
+                <circle cx="13" cy="28" r="3.5" fill="#1e293b" stroke="#64748b"/>
+                <circle cx="13" cy="42" r="3.5" fill="#0284c7" stroke="#38bdf8"/>
+              </g>
+              <g transform="translate(104, 0)">
+                <rect x="2" y="2" width="22" height="60" rx="3" fill="#1e293b" stroke="#eab308"/>
+                <text x="13" y="55" fill="#facc15" font-size="7.5" font-weight="bold" text-anchor="middle">8</text>
+                <circle id="ep_pca_ch8_pwm" cx="13" cy="12" r="4" fill="#ca8a04" stroke="#fde047" stroke-width="1.2"/>
+                <circle cx="13" cy="28" r="3.5" fill="#1e293b" stroke="#64748b"/>
+                <circle cx="13" cy="42" r="3.5" fill="#0284c7" stroke="#38bdf8"/>
+              </g>
+              <g transform="translate(130, 0)">
+                <rect x="2" y="2" width="22" height="60" rx="3" fill="#1e293b" stroke="#eab308"/>
+                <text x="13" y="55" fill="#facc15" font-size="7.5" font-weight="bold" text-anchor="middle">9</text>
+                <circle id="ep_pca_ch9_pwm" cx="13" cy="12" r="4" fill="#ca8a04" stroke="#fde047" stroke-width="1.2"/>
+                <circle cx="13" cy="28" r="3.5" fill="#1e293b" stroke="#64748b"/>
+                <circle cx="13" cy="42" r="3.5" fill="#0284c7" stroke="#38bdf8"/>
+              </g>
+            </g>
+          </g>
+
+          <!-- ======================================================== -->
+          <!-- BLOQUE 3D: 4 SERVOMOTORES SG90 CONECTADOS (CH 0, 1, 2, 3) -->
+          <!-- Cada uno con sus 3 cables: Amarillo=PWM, Rojo=V+, Marrón=GND -->
+          <!-- ======================================================== -->
+          <g id="gSg90ServosGroup" transform="translate(1680, 725)">
+            <!-- Servo 1 (CH 0) -->
+            <g id="gServo0" transform="translate(0, 0)">
+              <rect width="115" height="65" rx="5" fill="#0284c7" stroke="#38bdf8" stroke-width="1.8"/>
+              <circle cx="32" cy="32" r="18" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+              <rect x="27" y="5" width="10" height="35" rx="4" fill="#ffffff" stroke="#94a3b8"/>
+              <circle cx="32" cy="32" r="4" fill="#0f172a"/>
+              <text x="65" y="22" fill="#ffffff" font-size="8.5" font-weight="bold">SERVO 1</text>
+              <text x="65" y="34" fill="#fde047" font-size="7.5" font-weight="bold">(CH 0)</text>
+              <rect x="85" y="44" width="22" height="15" rx="2" fill="#0f172a" stroke="#475569"/>
+              <circle id="pt_servo0_plug" cx="96" cy="51" r="3.5" fill="#f97316"/>
+            </g>
+
+            <!-- Servo 2 (CH 1) -->
+            <g id="gServo1" transform="translate(135, 0)">
+              <rect width="115" height="65" rx="5" fill="#0284c7" stroke="#38bdf8" stroke-width="1.8"/>
+              <circle cx="32" cy="32" r="18" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+              <rect x="27" y="5" width="10" height="35" rx="4" fill="#ffffff" stroke="#94a3b8"/>
+              <circle cx="32" cy="32" r="4" fill="#0f172a"/>
+              <text x="65" y="22" fill="#ffffff" font-size="8.5" font-weight="bold">SERVO 2</text>
+              <text x="65" y="34" fill="#4ade80" font-size="7.5" font-weight="bold">(CH 1)</text>
+              <rect x="85" y="44" width="22" height="15" rx="2" fill="#0f172a" stroke="#475569"/>
+              <circle id="pt_servo1_plug" cx="96" cy="51" r="3.5" fill="#f97316"/>
+            </g>
+
+            <!-- Servo 3 (CH 2) -->
+            <g id="gServo2" transform="translate(270, 0)">
+              <rect width="115" height="65" rx="5" fill="#0284c7" stroke="#38bdf8" stroke-width="1.8"/>
+              <circle cx="32" cy="32" r="18" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+              <rect x="27" y="5" width="10" height="35" rx="4" fill="#ffffff" stroke="#94a3b8"/>
+              <circle cx="32" cy="32" r="4" fill="#0f172a"/>
+              <text x="65" y="22" fill="#ffffff" font-size="8.5" font-weight="bold">SERVO 3</text>
+              <text x="65" y="34" fill="#fbbf24" font-size="7.5" font-weight="bold">(CH 2)</text>
+              <rect x="85" y="44" width="22" height="15" rx="2" fill="#0f172a" stroke="#475569"/>
+              <circle id="pt_servo2_plug" cx="96" cy="51" r="3.5" fill="#f97316"/>
+            </g>
+
+            <!-- Servo 4 (CH 3) -->
+            <g id="gServo3" transform="translate(405, 0)">
+              <rect width="115" height="65" rx="5" fill="#0284c7" stroke="#38bdf8" stroke-width="1.8"/>
+              <circle cx="32" cy="32" r="18" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+              <rect x="27" y="5" width="10" height="35" rx="4" fill="#ffffff" stroke="#94a3b8"/>
+              <circle cx="32" cy="32" r="4" fill="#0f172a"/>
+              <text x="65" y="22" fill="#ffffff" font-size="8.5" font-weight="bold">SERVO 4</text>
+              <text x="65" y="34" fill="#f472b6" font-size="7.5" font-weight="bold">(CH 3)</text>
+              <rect x="85" y="44" width="22" height="15" rx="2" fill="#0f172a" stroke="#475569"/>
+              <circle id="pt_servo3_plug" cx="96" cy="51" r="3.5" fill="#f97316"/>
+            </g>
+          </g>
+
+          <!-- ======================================================== -->
+          <!-- BLOQUE 4: RUTAS DE CABLES PLANAR (PARALELAS SIN CRUCES)   -->
+          <!-- Cada cable tiene su propio orificio individual.          -->
+          <!-- ======================================================== -->
+          <g id="gPhysicalWiring">
+            <!-- ---------------------------------------------------- -->
+            <!-- CABLE A (AZUL/TIERRA): Shield D4 Pin G ➔ Riel (-)    -->
+            <!-- Origen: Pin G (x=165, y=358 - Pegado al ESP32)        -->
+            <!-- Destino: Riel (-) Fila 8 (760, 177.5)                -->
+            <!-- RUTA EXTERIOR SUPERIOR (SÓLIDO UNIFORME SIN LÍNEAS PUNTEADAS) -->
+            <!-- ---------------------------------------------------- -->
+            <path id="wire_gnd_shield" class="wire-interactive" data-cable-id="gnd_shield"
+                  d="M 165,358 C 165,140 460,140 760,177.5"
+                  fill="none" stroke="#0284c7" stroke-width="5" stroke-linecap="round"/>
+            <circle id="pt_shield_g" class="wire-endpoint" cx="165" cy="358" r="5"/>
+            <circle id="pt_proto_rail_gnd" class="wire-endpoint" cx="760" cy="177.5" r="5"/>
+
+            <!-- ---------------------------------------------------- -->
+            <!-- CABLE B CORREGIDO: USB 5V DIRECTO DEL SHIELD ➔ Riel (+) -->
+            <!-- Origen: Pin USB5V de la placa de extensión (583, 78)    -->
+            <!-- Destino: Riel (+) Fila 11 de la Protoboard (785, 215)   -->
+            <!-- Conexión física directa a la alimentación USB-C         -->
+            <!-- ---------------------------------------------------- -->
+            <path id="wire_vcc_shield" class="wire-interactive" data-cable-id="vcc_shield"
+                  d="M 583,78 C 650,78 720,130 785,215"
+                  fill="none" stroke="#ef4444" stroke-width="5" stroke-linecap="round"/>
+            <circle id="pt_shield_v" class="wire-endpoint" cx="583" cy="78" r="5.5"/>
+            <circle id="pt_proto_rail_vcc" class="wire-endpoint" cx="785" cy="215" r="5"/>
+
+            <!-- ---------------------------------------------------- -->
+            <!-- CABLE C (AMARILLO/D4): Shield D4 Pin S ➔ Fila 25, Col B -->
+            <!-- Origen: Pin S (x=95, y=358 - Columna Exterior S)      -->
+            <!-- Destino: Fila 25 Col B (865, 360) (730 + 135 = 865)   -->
+            <!-- RUTA DIRECTA INFERIOR (CERO CRUCES CON ROJO O NEGRO) -->
+            <!-- ---------------------------------------------------- -->
+            <path id="wire_sig_d4" class="wire-interactive" data-cable-id="sig_d4"
+                  d="M 95,358 C 95,360 600,360 865,360"
+                  fill="none" stroke="#eab308" stroke-width="5" stroke-linecap="round"/>
+            <circle id="pt_shield_s" class="wire-endpoint" cx="95" cy="358" r="5"/>
+            <circle id="pt_proto_25_b" class="wire-endpoint" cx="865" cy="360" r="5"/>
+
+            <!-- ==================================================== -->
+            <!-- CABLES DEL ZUMBADOR (MH-FMG) EN translate(1680, 275) -->
+            <!-- Pines del módulo zumbador (x=1680+260+cx, y=275+22+cy): -->
+            <!-- VCC (1956, 329), I/O (1982, 329), GND (2008, 329)     -->
+            <!-- Conectan directo a Protoboard:                        -->
+            <!-- VCC ➔ Fila 24 Col E (985, 347.5)                      -->
+            <!-- I/O ➔ Fila 25 Col E (985, 360)                        -->
+            <!-- GND ➔ Fila 26 Col E (985, 372.5)                      -->
+            <!-- ==================================================== -->
+
+            <!-- CABLE D (BLANCO/VCC): Buzzer VCC ➔ Fila 24, Columna E -->
+            <path id="wire_buzz_white" class="wire-interactive" data-cable-id="buzz_white"
+                  d="M 1956,329 C 1800,329 1300,347.5 985,347.5"
+                  fill="none" stroke="#f8fafc" stroke-width="4.5" stroke-linecap="round"/>
+            <path d="M 1956,329 C 1800,329 1300,347.5 985,347.5"
+                  fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,4"/>
+            <circle id="pt_buzz_vcc" class="wire-endpoint" cx="1956" cy="329" r="4.5"/>
+            <circle id="pt_proto_24_e" class="wire-endpoint" cx="985" cy="347.5" r="4.5"/>
+
+            <!-- CABLE E (MORADO/I/O): Buzzer I/O ➔ Fila 25, Columna E -->
+            <path id="wire_buzz_purple" class="wire-interactive" data-cable-id="buzz_purple"
+                  d="M 1982,329 C 1800,345 1300,360 985,360"
+                  fill="none" stroke="#9333ea" stroke-width="4.5" stroke-linecap="round"/>
+            <circle id="pt_buzz_io" class="wire-endpoint" cx="1982" cy="329" r="4.5"/>
+            <circle id="pt_proto_25_e" class="wire-endpoint" cx="985" cy="360" r="4.5"/>
+
+            <!-- CABLE F (AZUL/GND): Buzzer GND ➔ Fila 26, Columna E  -->
+            <path id="wire_buzz_blue" class="wire-interactive" data-cable-id="buzz_blue"
+                  d="M 2008,329 C 1800,360 1300,372.5 985,372.5"
+                  fill="none" stroke="#2563eb" stroke-width="4.5" stroke-linecap="round"/>
+            <circle id="pt_buzz_gnd" class="wire-endpoint" cx="2008" cy="329" r="4.5"/>
+            <circle id="pt_proto_26_e" class="wire-endpoint" cx="985" cy="372.5" r="4.5"/>
+
+            <!-- ==================================================== -->
+            <!-- ==================================================== -->
+            <!-- CABLES DE LA PANTALLA LCD 1602 I2C (4 CONEXIONES)    -->
+            <!-- Pines reales del módulo LCD HW-61 en (x=1680-16+14=1678, y=40+20+cy): -->
+            <!-- GND (1678, 85), VCC (1678, 115), SDA (1678, 145), SCL (1678, 175) -->
+            <!-- ==================================================== -->
+            <!-- 1. LCD GND ➔ Protoboard Riel Negativo (-) (1475, 85) -->
+            <path id="wire_lcd_gnd" class="wire-interactive" data-cable-id="lcd_gnd"
+                  d="M 1678,85 C 1600,85 1540,85 1475,85"
+                  fill="none" stroke="#0284c7" stroke-width="4.5" stroke-linecap="round"/>
+            <circle id="pt_lcd_gnd_pin" class="wire-endpoint" cx="1678" cy="85" r="5"/>
+            <circle id="pt_proto_rail_gnd_lcd" class="wire-endpoint" cx="1475" cy="85" r="4.5"/>
+
+            <!-- 2. LCD VCC ➔ Protoboard Riel Positivo (+) (1500, 115) -->
+            <path id="wire_lcd_vcc" class="wire-interactive" data-cable-id="lcd_vcc"
+                  d="M 1678,115 C 1600,115 1550,115 1500,115"
+                  fill="none" stroke="#dc2626" stroke-width="4.5" stroke-linecap="round"/>
+            <circle id="pt_lcd_vcc_pin" class="wire-endpoint" cx="1678" cy="115" r="5"/>
+            <circle id="pt_proto_rail_vcc_lcd" class="wire-endpoint" cx="1500" cy="115" r="4.5"/>
+
+            <!-- 3. LCD SDA ➔ Shield Pin D21 S (x=95, y=592) (Arco exterior superior sin cruzar) -->
+            <path id="wire_lcd_sda" class="wire-interactive" data-cable-id="lcd_sda"
+                  d="M 1678,145 C 1678,15 350,15 95,592"
+                  fill="none" stroke="#22c55e" stroke-width="4.5" stroke-linecap="round"/>
+            <circle id="pt_lcd_sda_pin" class="wire-endpoint" cx="1678" cy="145" r="5"/>
+            <circle id="pt_shield_sda_d21" class="wire-endpoint" cx="95" cy="592" r="5"/>
+
+            <!-- 4. LCD SCL ➔ Shield Pin D22 S (x=95, y=709) (Arco exterior superior) -->
+            <path id="wire_lcd_scl" class="wire-interactive" data-cable-id="lcd_scl"
+                  d="M 1678,175 C 1678,3 300,3 95,709"
+                  fill="none" stroke="#eab308" stroke-width="4.5" stroke-linecap="round"/>
+            <circle id="pt_lcd_scl_pin" class="wire-endpoint" cx="1678" cy="175" r="5"/>
+            <circle id="pt_shield_scl_d22" class="wire-endpoint" cx="95" cy="709" r="5"/>
+
+
+            <!-- ==================================================== -->
+            <!-- CABLES DE LOS 5 BOTONES DEL JUKEBOX                  -->
+            <!-- Señal: Columna D (x=945) ➔ Pin Shield S correspondiente -->
+            <!-- Tierra (GND): Columna E (x=985) ➔ Riel (-) Central   -->
+            <!-- ==================================================== -->
+            <!-- BOTÓN 1 (NOCHE DE PAZ): D18 (x=95, y=514) ➔ Fila 42 Col D (945, 572.5) -->
+            <path id="wire_btn_sig" class="wire-interactive" data-cable-id="btn_sig"
+                  d="M 95,514 C 95,572.5 700,572.5 945,572.5"
+                  fill="none" stroke="#f97316" stroke-width="4.5" stroke-linecap="round"/>
+            <circle id="pt_shield_btn_d18" class="wire-endpoint" cx="95" cy="514" r="5"/>
+            <circle id="pt_proto_btn_sig" class="wire-endpoint" cx="945" cy="572.5" r="4.5"/>
+
+            <line id="wire_btn_gnd" class="wire-interactive" data-cable-id="btn_sig"
+                  x1="985" y1="572.5" x2="1144" y2="572.5" stroke="#38bdf8" stroke-width="3.5" stroke-linecap="round"/>
+            <circle id="pt_proto_btn1_gnd_e" class="wire-endpoint" cx="985" cy="572.5" r="4"/>
+            <circle id="pt_proto_btn1_gnd_rail" class="wire-endpoint" cx="1144" cy="572.5" r="4"/>
+
+            <!-- BOTÓN 2 (MARIO BROS): D13 Shield Der (x=625, y=280) ➔ Fila 46 Col D (945, 622.5) -->
+            <path id="wire_btn2_mario" class="wire-interactive" data-cable-id="btn2_mario"
+                  d="M 625,280 C 720,280 800,622.5 945,622.5"
+                  fill="none" stroke="#facc15" stroke-width="4.5" stroke-linecap="round"/>
+            <circle id="pt_shield_btn_d13" class="wire-endpoint" cx="625" cy="280" r="5"/>
+            <circle id="pt_proto_btn2_sig" class="wire-endpoint" cx="945" cy="622.5" r="4.5"/>
+
+            <line id="wire_btn2_gnd" class="wire-interactive" data-cable-id="btn2_mario"
+                  x1="985" y1="622.5" x2="1144" y2="622.5" stroke="#38bdf8" stroke-width="3.5" stroke-linecap="round"/>
+            <circle id="pt_proto_btn2_gnd_e" class="wire-endpoint" cx="985" cy="622.5" r="4"/>
+            <circle id="pt_proto_btn2_gnd_rail" class="wire-endpoint" cx="1144" cy="622.5" r="4"/>
+
+            <!-- BOTÓN 3 (STAR WARS): D12 Shield Der (x=625, y=319) ➔ Fila 50 Col D (945, 672.5) -->
+            <path id="wire_btn3_sw" class="wire-interactive" data-cable-id="btn3_sw"
+                  d="M 625,319 C 720,319 800,672.5 945,672.5"
+                  fill="none" stroke="#38bdf8" stroke-width="4.5" stroke-linecap="round"/>
+            <circle id="pt_shield_btn_d12" class="wire-endpoint" cx="625" cy="319" r="5"/>
+            <circle id="pt_proto_btn3_sig" class="wire-endpoint" cx="945" cy="672.5" r="4.5"/>
+
+            <line id="wire_btn3_gnd" class="wire-interactive" data-cable-id="btn3_sw"
+                  x1="985" y1="672.5" x2="1144" y2="672.5" stroke="#38bdf8" stroke-width="3.5" stroke-linecap="round"/>
+            <circle id="pt_proto_btn3_gnd_e" class="wire-endpoint" cx="985" cy="672.5" r="4"/>
+            <circle id="pt_proto_btn3_gnd_rail" class="wire-endpoint" cx="1144" cy="672.5" r="4"/>
+
+            <!-- BOTÓN 4 (PIRATAS DEL CARIBE): D14 Shield Der (x=625, y=358) ➔ Fila 54 Col D (945, 722.5) -->
+            <path id="wire_btn4_pirates" class="wire-interactive" data-cable-id="btn4_pirates"
+                  d="M 625,358 C 720,358 800,722.5 945,722.5"
+                  fill="none" stroke="#4ade80" stroke-width="4.5" stroke-linecap="round"/>
+            <circle id="pt_shield_btn_d14" class="wire-endpoint" cx="625" cy="358" r="5"/>
+            <circle id="pt_proto_btn4_sig" class="wire-endpoint" cx="945" cy="722.5" r="4.5"/>
+
+            <line id="wire_btn4_gnd" class="wire-interactive" data-cable-id="btn4_pirates"
+                  x1="985" y1="722.5" x2="1144" y2="722.5" stroke="#38bdf8" stroke-width="3.5" stroke-linecap="round"/>
+            <circle id="pt_proto_btn4_gnd_e" class="wire-endpoint" cx="985" cy="722.5" r="4"/>
+            <circle id="pt_proto_btn4_gnd_rail" class="wire-endpoint" cx="1144" cy="722.5" r="4"/>
+
+            <!-- BOTÓN 5 (TETRIS THEME): D27 Shield Der (x=625, y=397) ➔ Fila 58 Col D (945, 772.5) -->
+            <path id="wire_btn5_tetris" class="wire-interactive" data-cable-id="btn5_tetris"
+                  d="M 625,397 C 720,397 800,772.5 945,772.5"
+                  fill="none" stroke="#ec4899" stroke-width="4.5" stroke-linecap="round"/>
+            <circle id="pt_shield_btn_d27" class="wire-endpoint" cx="625" cy="397" r="5"/>
+            <circle id="pt_proto_btn5_sig" class="wire-endpoint" cx="945" cy="772.5" r="4.5"/>
+
+            <line id="wire_btn5_gnd" class="wire-interactive" data-cable-id="btn5_tetris"
+                  x1="985" y1="772.5" x2="1144" y2="772.5" stroke="#38bdf8" stroke-width="3.5" stroke-linecap="round"/>
+            <circle id="pt_proto_btn5_gnd_e" class="wire-endpoint" cx="985" cy="772.5" r="4"/>
+            <circle id="pt_proto_btn5_gnd_rail" class="wire-endpoint" cx="1144" cy="772.5" r="4"/>
+
+            <!-- ==================================================== -->
+            <!-- CABLES DEL MÓDULO PCA9685 (BUS I2C SEPARADO EN D25/D26) -->
+            <!-- PCA9685 en translate(1680, 395)                      -->
+            <!-- Cabecera Izq: GND (1678, 480), SCL (1678, 528), SDA (1678, 552), VCC (1678, 576) -->
+            <!-- Shield Der: D26 SCL (625, 436), D25 SDA (625, 475)   -->
+            <!-- ==================================================== -->
+            <!-- 1. PCA9685 SDA (Verde): PCA Pin SDA (1678, 552) ➔ Shield D25 S (625, 475) -->
+            <path id="wire_pca_sda" class="wire-interactive" data-cable-id="pca_sda"
+                  d="M 1678,552 C 1600,552 800,475 625,475"
+                  fill="none" stroke="#22c55e" stroke-width="4.5" stroke-linecap="round"/>
+            <circle id="pt_pca_sda_pin" class="wire-endpoint" cx="1678" cy="552" r="5"/>
+            <circle id="pt_shield_d25_s" class="wire-endpoint" cx="625" cy="475" r="5"/>
+
+            <!-- 2. PCA9685 SCL (Amarillo): PCA Pin SCL (1678, 528) ➔ Shield D26 S (625, 436) -->
+            <path id="wire_pca_scl" class="wire-interactive" data-cable-id="pca_scl"
+                  d="M 1678,528 C 1600,528 800,436 625,436"
+                  fill="none" stroke="#eab308" stroke-width="4.5" stroke-linecap="round"/>
+            <circle id="pt_pca_scl_pin" class="wire-endpoint" cx="1678" cy="528" r="5"/>
+            <circle id="pt_shield_d26_s" class="wire-endpoint" cx="625" cy="436" r="5"/>
+
+            <!-- 3. PCA9685 VCC (Rojo): PCA Pin VCC (1678, 576) ➔ Protoboard Riel Positivo (+) (1500, 600) -->
+            <path id="wire_pca_vcc" class="wire-interactive" data-cable-id="pca_vcc"
+                  d="M 1678,576 C 1600,576 1550,600 1500,600"
+                  fill="none" stroke="#ef4444" stroke-width="4" stroke-linecap="round"/>
+            <circle id="pt_pca_vcc_pin" class="wire-endpoint" cx="1678" cy="576" r="5"/>
+            <circle id="pt_proto_rail_vcc_pca" class="wire-endpoint" cx="1500" cy="600" r="4.5"/>
+
+            <!-- 4. PCA9685 GND (Azul): PCA Pin GND (1678, 480) ➔ Protoboard Riel Negativo (-) (1475, 480) -->
+            <path id="wire_pca_gnd" class="wire-interactive" data-cable-id="pca_gnd"
+                  d="M 1678,480 C 1600,480 1550,480 1475,480"
+                  fill="none" stroke="#0284c7" stroke-width="4" stroke-linecap="round"/>
+            <circle id="pt_pca_gnd_pin" class="wire-endpoint" cx="1678" cy="480" r="5"/>
+            <circle id="pt_proto_rail_gnd_pca" class="wire-endpoint" cx="1475" cy="480" r="4.5"/>
+
+            <!-- 5. BORNERA VERDE: Cable USB Externo 5V Entrada -->
+            <path id="wire_pca_usb_vcc" class="wire-interactive" data-cable-id="pca_usb_vcc"
+                  d="M 1918,600 L 1918,554"
+                  fill="none" stroke="#ef4444" stroke-width="5" stroke-linecap="round"/>
+            <circle id="pt_pca_usb_v" class="wire-endpoint" cx="1918" cy="554" r="5"/>
+
+            <path id="wire_pca_usb_gnd" class="wire-interactive" data-cable-id="pca_usb_gnd"
+                  d="M 1962,600 L 1962,554"
+                  fill="none" stroke="#0f172a" stroke-width="5" stroke-linecap="round"/>
+            <path d="M 1962,600 L 1962,554"
+                  fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="5,3"/>
+            <circle id="pt_pca_usb_g" class="wire-endpoint" cx="1962" cy="554" r="5"/>
+
+            <!-- Tierra común Bornera GND ➔ Protoboard Riel Negativo (-) -->
+            <path id="wire_pca_term_gnd_link" class="wire-interactive" data-cable-id="pca_term_gnd_link"
+                  d="M 1962,554 C 1850,554 1600,530 1475,530"
+                  fill="none" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round"/>
+            <circle id="pt_proto_rail_gnd_link" class="wire-endpoint" cx="1475" cy="530" r="4"/>
+
+            <!-- ======================================================== -->
+            <!-- CABLES DE LOS 4 SERVOMOTORES SG90 (3 CABLES CADA UNO)     -->
+            <!-- Conectores triples en PCA CH0..3: PWM(Amarillo), V+(Rojo), GND(Azul) -->
+            <!-- ======================================================== -->
+            <!-- SERVO 0 (CH0): PWM (1731, 612), V+ (1731, 636), GND (1731, 660) ➔ Plug (1776, 776) -->
+            <path id="wire_servo0_pwm" class="wire-interactive" data-cable-id="servo0"
+                  d="M 1731,612 C 1731,680 1776,700 1776,776"
+                  fill="none" stroke="#eab308" stroke-width="3" stroke-linecap="round"/>
+            <path id="wire_servo0_vcc" class="wire-interactive" data-cable-id="servo0"
+                  d="M 1731,636 C 1735,685 1778,710 1778,776"
+                  fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+            <path id="wire_servo0_gnd" class="wire-interactive" data-cable-id="servo0"
+                  d="M 1731,660 C 1740,690 1780,720 1780,776"
+                  fill="none" stroke="#78350f" stroke-width="3" stroke-linecap="round"/>
+
+            <!-- SERVO 1 (CH1): PWM (1763, 612), V+ (1763, 636), GND (1763, 660) ➔ Plug (1911, 776) -->
+            <path id="wire_servo1_pwm" class="wire-interactive" data-cable-id="servo1"
+                  d="M 1763,612 C 1763,680 1911,700 1911,776"
+                  fill="none" stroke="#eab308" stroke-width="3" stroke-linecap="round"/>
+            <path id="wire_servo1_vcc" class="wire-interactive" data-cable-id="servo1"
+                  d="M 1763,636 C 1767,685 1913,710 1913,776"
+                  fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+            <path id="wire_servo1_gnd" class="wire-interactive" data-cable-id="servo1"
+                  d="M 1763,660 C 1772,690 1915,720 1915,776"
+                  fill="none" stroke="#78350f" stroke-width="3" stroke-linecap="round"/>
+
+            <!-- SERVO 2 (CH2): PWM (1795, 612), V+ (1795, 636), GND (1795, 660) ➔ Plug (2046, 776) -->
+            <path id="wire_servo2_pwm" class="wire-interactive" data-cable-id="servo2"
+                  d="M 1795,612 C 1795,680 2046,700 2046,776"
+                  fill="none" stroke="#eab308" stroke-width="3" stroke-linecap="round"/>
+            <path id="wire_servo2_vcc" class="wire-interactive" data-cable-id="servo2"
+                  d="M 1795,636 C 1799,685 2048,710 2048,776"
+                  fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+            <path id="wire_servo2_gnd" class="wire-interactive" data-cable-id="servo2"
+                  d="M 1795,660 C 1804,690 2050,720 2050,776"
+                  fill="none" stroke="#78350f" stroke-width="3" stroke-linecap="round"/>
+
+            <!-- SERVO 3 (CH3): PWM (1827, 612), V+ (1827, 636), GND (1827, 660) ➔ Plug (2181, 776) -->
+            <path id="wire_servo3_pwm" class="wire-interactive" data-cable-id="servo3"
+                  d="M 1827,612 C 1827,680 2181,700 2181,776"
+                  fill="none" stroke="#eab308" stroke-width="3" stroke-linecap="round"/>
+            <path id="wire_servo3_vcc" class="wire-interactive" data-cable-id="servo3"
+                  d="M 1827,636 C 1831,685 2183,710 2183,776"
+                  fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+            <path id="wire_servo3_gnd" class="wire-interactive" data-cable-id="servo3"
+                  d="M 1827,660 C 1836,690 2185,720 2185,776"
+                  fill="none" stroke="#78350f" stroke-width="3" stroke-linecap="round"/>
+
+            <!-- ======================================================== -->
+            <!-- CABLES DE LOS 6 LEDs (PCA CANALES 4..9 ➔ PROTOBOARD RESISTENCIAS) -->
+            <!-- Conexión directa desde la cabecera amarilla (PWM) de cada canal  -->
+            <!-- hacia el terminal derecho de la resistencia 220Ω (Fila Col D)   -->
+            <!-- ======================================================== -->
+            <!-- LED 1 (Rojo): PCA CH4 (2018, 612) ➔ Protoboard Fila 6 Col D (945, 122.5) -->
+            <path id="wire_led1_pwm" class="wire-interactive" data-cable-id="led1"
+                  d="M 2018,612 C 2018,340 1050,122.5 945,122.5"
+                  fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+            <circle id="pt_pca_led1" class="wire-endpoint" cx="2018" cy="612" r="4"/>
+            <circle id="pt_proto_led1" class="wire-endpoint" cx="945" cy="122.5" r="4.5"/>
+
+            <!-- LED 2 (Verde): PCA CH5 (2044, 612) ➔ Protoboard Fila 9 Col D (945, 160) -->
+            <path id="wire_led2_pwm" class="wire-interactive" data-cable-id="led2"
+                  d="M 2044,612 C 2044,360 1050,160 945,160"
+                  fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
+            <circle id="pt_pca_led2" class="wire-endpoint" cx="2044" cy="612" r="4"/>
+            <circle id="pt_proto_led2" class="wire-endpoint" cx="945" cy="160" r="4.5"/>
+
+            <!-- LED 3 (Amarillo): PCA CH6 (2070, 612) ➔ Protoboard Fila 12 Col D (945, 197.5) -->
+            <path id="wire_led3_pwm" class="wire-interactive" data-cable-id="led3"
+                  d="M 2070,612 C 2070,380 1050,197.5 945,197.5"
+                  fill="none" stroke="#eab308" stroke-width="3" stroke-linecap="round"/>
+            <circle id="pt_pca_led3" class="wire-endpoint" cx="2070" cy="612" r="4"/>
+            <circle id="pt_proto_led3" class="wire-endpoint" cx="945" cy="197.5" r="4.5"/>
+
+            <!-- LED 4 (Azul): PCA CH7 (2096, 612) ➔ Protoboard Fila 15 Col D (945, 235) -->
+            <path id="wire_led4_pwm" class="wire-interactive" data-cable-id="led4"
+                  d="M 2096,612 C 2096,400 1050,235 945,235"
+                  fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/>
+            <circle id="pt_pca_led4" class="wire-endpoint" cx="2096" cy="612" r="4"/>
+            <circle id="pt_proto_led4" class="wire-endpoint" cx="945" cy="235" r="4.5"/>
+
+            <!-- LED 5 (Blanco): PCA CH8 (2122, 612) ➔ Protoboard Fila 18 Col D (945, 272.5) -->
+            <path id="wire_led5_pwm" class="wire-interactive" data-cable-id="led5"
+                  d="M 2122,612 C 2122,420 1050,272.5 945,272.5"
+                  fill="none" stroke="#f8fafc" stroke-width="3" stroke-linecap="round"/>
+            <circle id="pt_pca_led5" class="wire-endpoint" cx="2122" cy="612" r="4"/>
+            <circle id="pt_proto_led5" class="wire-endpoint" cx="945" cy="272.5" r="4.5"/>
+
+            <!-- LED 6 (Naranja): PCA CH9 (2148, 612) ➔ Protoboard Fila 21 Col D (945, 310) -->
+            <path id="wire_led6_pwm" class="wire-interactive" data-cable-id="led6"
+                  d="M 2148,612 C 2148,440 1050,310 945,310"
+                  fill="none" stroke="#f97316" stroke-width="3" stroke-linecap="round"/>
+            <circle id="pt_pca_led6" class="wire-endpoint" cx="2148" cy="612" r="4"/>
+            <circle id="pt_proto_led6" class="wire-endpoint" cx="945" cy="310" r="4.5"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Lista de Componentes Físicos (Justo debajo del circuito gráfico) -->
+    <div class="card" style="margin-top: 14px;">
+      <div class="card-header" style="margin-bottom: 10px; border-bottom: 1px solid var(--card-border); padding-bottom: 8px;">
+        <div class="card-title" style="font-size: 1rem; color: #38bdf8;">
+          <span>📦 Lista de Componentes</span>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px;">
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid #1e293b; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.15rem;">⚡</span>
+            <div>
+              <div style="color: #ffffff; font-weight: 700; font-size: 0.88rem;">ESP32 DevKit V1 (30 pines)</div>
+              <div style="color: #94a3b8; font-size: 0.76rem;">Microcontrolador dual-core 3.3V</div>
+            </div>
+          </div>
+          <span style="background: #1e293b; color: #38bdf8; font-weight: 800; font-size: 0.8rem; padding: 3px 8px; border-radius: 6px;">x1</span>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid #1e293b; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.15rem;">🛡️</span>
+            <div>
+              <div style="color: #ffffff; font-weight: 700; font-size: 0.88rem;">ESP32 Expansion Shield</div>
+              <div style="color: #94a3b8; font-size: 0.76rem;">Placa de expansión terminales G-V-S</div>
+            </div>
+          </div>
+          <span style="background: #1e293b; color: #38bdf8; font-weight: 800; font-size: 0.8rem; padding: 3px 8px; border-radius: 6px;">x1</span>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid #1e293b; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.15rem;">🥖</span>
+            <div>
+              <div style="color: #ffffff; font-weight: 700; font-size: 0.88rem;">Protoboard (830 puntos)</div>
+              <div style="color: #94a3b8; font-size: 0.76rem;">Placa de pruebas con doble riel (+ / -)</div>
+            </div>
+          </div>
+          <span style="background: #1e293b; color: #38bdf8; font-weight: 800; font-size: 0.8rem; padding: 3px 8px; border-radius: 6px;">x1</span>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid #1e293b; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.15rem;">📟</span>
+            <div>
+              <div style="color: #ffffff; font-weight: 700; font-size: 0.88rem;">Pantalla LCD 1602 con Módulo I2C</div>
+              <div style="color: #94a3b8; font-size: 0.76rem;">Display 16x2 caracteres (0x27, D21/D22)</div>
+            </div>
+          </div>
+          <span style="background: #1e293b; color: #38bdf8; font-weight: 800; font-size: 0.8rem; padding: 3px 8px; border-radius: 6px;">x1</span>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid #1e293b; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.15rem;">🎛️</span>
+            <div>
+              <div style="color: #ffffff; font-weight: 700; font-size: 0.88rem;">Controlador PWM PCA9685 (16 Canales)</div>
+              <div style="color: #94a3b8; font-size: 0.76rem;">Módulo servo driver I2C (0x40, D25/D26)</div>
+            </div>
+          </div>
+          <span style="background: #1e293b; color: #38bdf8; font-weight: 800; font-size: 0.8rem; padding: 3px 8px; border-radius: 6px;">x1</span>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid #1e293b; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.15rem;">🔊</span>
+            <div>
+              <div style="color: #ffffff; font-weight: 700; font-size: 0.88rem;">Zumbador Pasivo (Buzzer)</div>
+              <div style="color: #94a3b8; font-size: 0.76rem;">Emisor de tonos melódicos (Pin D4)</div>
+            </div>
+          </div>
+          <span style="background: #1e293b; color: #38bdf8; font-weight: 800; font-size: 0.8rem; padding: 3px 8px; border-radius: 6px;">x1</span>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid #1e293b; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.15rem;">🦾</span>
+            <div>
+              <div style="color: #ffffff; font-weight: 700; font-size: 0.88rem;">Servomotores SG90 (9g)</div>
+              <div style="color: #94a3b8; font-size: 0.76rem;">Microservos PWM (Canales PCA CH0 a CH3)</div>
+            </div>
+          </div>
+          <span style="background: #1e293b; color: #38bdf8; font-weight: 800; font-size: 0.8rem; padding: 3px 8px; border-radius: 6px;">x4</span>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid #1e293b; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.15rem;">🔘</span>
+            <div>
+              <div style="color: #ffffff; font-weight: 700; font-size: 0.88rem;">Pulsadores (Push Buttons)</div>
+              <div style="color: #94a3b8; font-size: 0.76rem;">Botones táctiles 4 pines (D18, D13, D12, D14, D27)</div>
+            </div>
+          </div>
+          <span style="background: #1e293b; color: #38bdf8; font-weight: 800; font-size: 0.8rem; padding: 3px 8px; border-radius: 6px;">x5</span>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid #1e293b; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.15rem;">💡</span>
+            <div>
+              <div style="color: #ffffff; font-weight: 700; font-size: 0.88rem;">Diodos LED (5mm)</div>
+              <div style="color: #94a3b8; font-size: 0.76rem;">Rojo, Verde, Amarillo, Azul, Blanco, Naranja</div>
+            </div>
+          </div>
+          <span style="background: #1e293b; color: #38bdf8; font-weight: 800; font-size: 0.8rem; padding: 3px 8px; border-radius: 6px;">x6</span>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid #1e293b; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.15rem;">⚡</span>
+            <div>
+              <div style="color: #ffffff; font-weight: 700; font-size: 0.88rem;">Resistencias 220 Ω (1/4 W)</div>
+              <div style="color: #94a3b8; font-size: 0.76rem;">Limitadoras de corriente para los 6 LEDs</div>
+            </div>
+          </div>
+          <span style="background: #1e293b; color: #38bdf8; font-weight: 800; font-size: 0.8rem; padding: 3px 8px; border-radius: 6px;">x6</span>
+        </div>
+      </div>
+    </div>
+    </div> <!-- Fin columna izquierda -->
+
+    <!-- Panel Lateral: Selector de Cables e Inspector -->
+    <div class="sidebar">
+      <!-- Selector de Cables -->
+      <div class="card cable-picker-box">
+        <h3>🎯 Lista de conexiones</h3>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 8px;">
+          Toca cualquier cable de la lista o directamente en el dibujo para ver su recorrido:
+        </p>
+
+        <button class="cable-item-btn" data-cable="sig_d4">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #eab308;"></span>
+            <span>Cable Amarillo (D4 Señal)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #fbbf24;">Shield ➔ Fila 25, Col B</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="buzz_purple">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #9333ea;"></span>
+            <span>Cable Morado (Buzzer I/O)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #c084fc;">Buzzer ➔ Fila 25, Col E</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="vcc_shield">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #ef4444;"></span>
+            <span>Cable Rojo (USB 5V / VIN)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #f87171;">ESP32 VIN ➔ Riel (+) 5V</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="gnd_shield">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #0f172a; border-color: #38bdf8;"></span>
+            <span>Cable Negro (Shield GND)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #38bdf8;">Shield ➔ Riel (-)</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="buzz_white">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #f8fafc;"></span>
+            <span>Cable Blanco (Buzzer VCC)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #f8fafc;">Buzzer ➔ Fila 24, Col E</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="buzz_blue">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #2563eb;"></span>
+            <span>Cable Azul (Buzzer GND)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #60a5fa;">Buzzer ➔ Fila 26, Col E</span>
+        </button>
+
+        <!-- SECCIÓN PANTALLA LCD 1602 I2C (4 CABLES) -->
+        <div style="border-top: 1px dashed var(--card-border); margin: 8px 0 4px; padding-top: 6px; font-size: 0.73rem; color: #38bdf8; font-weight: bold; text-transform: uppercase;">
+          📺 Pantalla LCD 1602 I2C (HW-61)
+        </div>
+
+        <button class="cable-item-btn" data-cable="lcd_gnd">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #0284c7;"></span>
+            <span>Cable Azul (LCD GND)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #38bdf8;">LCD Pin 1 ➔ Riel (-)</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="lcd_vcc">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #dc2626;"></span>
+            <span>Cable Rojo (LCD VCC 5V)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #f87171;">LCD Pin 2 ➔ Riel (+)</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="lcd_sda">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #22c55e;"></span>
+            <span>Cable Verde (LCD SDA)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #4ade80;">LCD Pin 3 ➔ Pin D21</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="lcd_scl">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #eab308;"></span>
+            <span>Cable Amarillo (LCD SCL)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #fbbf24;">LCD Pin 4 ➔ Pin D22</span>
+        </button>
+
+        <!-- SECCIÓN 5 BOTONES JUKEBOX (INTERACTIVOS) -->
+        <div style="border-top: 1px dashed var(--card-border); margin: 8px 0 4px; padding-top: 6px; font-size: 0.73rem; color: #f97316; font-weight: bold; text-transform: uppercase;">
+          🔘 5 Botones Jukebox (D18, D13, D12, D14, D27)
+        </div>
+
+        <button class="cable-item-btn" data-cable="btn_sig">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #f97316;"></span>
+            <span>Botón 1: Noche de Paz (D18)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #fb923c;">Fila 42 Col D ➔ Pin D18</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="btn2_mario">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #facc15;"></span>
+            <span>Botón 2: Super Mario (D13)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #fde047;">Fila 46 Col D ➔ Pin D13</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="btn3_sw">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #38bdf8;"></span>
+            <span>Botón 3: Star Wars (D12)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #7dd3fc;">Fila 50 Col D ➔ Pin D12</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="btn4_pirates">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #4ade80;"></span>
+            <span>Botón 4: Piratas Caribe (D14)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #86efac;">Fila 54 Col D ➔ Pin D14</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="btn5_tetris">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #f472b6;"></span>
+            <span>Botón 5: Tetris (D27)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #fbcfe8;">Fila 58 Col D ➔ Pin D27</span>
+        </button>
+
+        <!-- SECCIÓN MÓDULO PCA9685 EN PINES SEPARADOS D25 Y D26 (ALIMENTACIÓN EXTERNA USB) -->
+        <div style="border-top: 1px dashed var(--card-border); margin: 8px 0 4px; padding-top: 6px; font-size: 0.73rem; color: #a855f7; font-weight: bold; text-transform: uppercase;">
+          🦾 Controlador PCA9685 (Pines D25/D26 + USB Externo)
+        </div>
+
+        <button class="cable-item-btn" data-cable="pca_sda">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #22c55e;"></span>
+            <span>Cable Verde (PCA9685 SDA Datos)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #4ade80;">PCA SDA ➔ Shield Pin D25</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="pca_scl">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #eab308;"></span>
+            <span>Cable Amarillo (PCA9685 SCL Reloj)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #fbbf24;">PCA SCL ➔ Shield Pin D26</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="pca_vcc">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #dc2626;"></span>
+            <span>Cable Rojo (PCA9685 VCC Lógica)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #f87171;">PCA VCC ➔ Riel (+) 5V</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="pca_gnd">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #0284c7;"></span>
+            <span>Cable Azul (PCA9685 GND Lógica)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #38bdf8;">PCA GND ➔ Riel (-)</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="pca_usb_vcc">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #ef4444;"></span>
+            <span>Cable Rojo USB Externo (Bornera V+)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #f87171;">Cable USB +5V ➔ Bornera V+</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="pca_usb_gnd">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #0f172a; border-color: #38bdf8;"></span>
+            <span>Cable Negro USB Externo (Bornera GND)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #38bdf8;">Cable USB GND ➔ Bornera GND</span>
+        </button>
+
+        <!-- 4 SERVOS INDIVIDUALES -->
+        <div style="border-top: 1px dashed var(--card-border); margin: 8px 0 4px; padding-top: 6px; font-size: 0.73rem; color: #fbbf24; font-weight: bold; text-transform: uppercase;">
+          🦾 4 Servomotores SG90 (3 Cables c/u)
+        </div>
+
+        <button class="cable-item-btn" data-cable="servo0">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #38bdf8;"></span>
+            <span>Servo 1 (Canal 0)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #38bdf8;">PCA CH0 ➔ SG90 Motor 1</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="servo1">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #22c55e;"></span>
+            <span>Servo 2 (Canal 1)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #4ade80;">PCA CH1 ➔ SG90 Motor 2</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="servo2">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #f59e0b;"></span>
+            <span>Servo 3 (Canal 2)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #fbbf24;">PCA CH2 ➔ SG90 Motor 3</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="servo3">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #ec4899;"></span>
+            <span>Servo 4 (Canal 3)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #f472b6;">PCA CH3 ➔ SG90 Motor 4</span>
+        </button>
+
+        <!-- 6 LEDs CON RESISTENCIAS -->
+        <div style="border-top: 1px dashed var(--card-border); margin: 8px 0 4px; padding-top: 6px; font-size: 0.73rem; color: #eab308; font-weight: bold; text-transform: uppercase;">
+          💡 6 LEDs en Protoboard (CH 4..9)
+        </div>
+
+        <button class="cable-item-btn" data-cable="led1">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #ef4444;"></span>
+            <span>LED 1 Rojo (CH4)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #f87171;">CH4 ➔ Fila 6 Resistencia</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="led2">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #22c55e;"></span>
+            <span>LED 2 Verde (CH5)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #4ade80;">CH5 ➔ Fila 9 Resistencia</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="led3">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #eab308;"></span>
+            <span>LED 3 Amarillo (CH6)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #fde047;">CH6 ➔ Fila 12 Resistencia</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="led4">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #0284c7;"></span>
+            <span>LED 4 Azul (CH7)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #38bdf8;">CH7 ➔ Fila 15 Resistencia</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="led5">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #f8fafc;"></span>
+            <span>LED 5 Blanco (CH8)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #f8fafc;">CH8 ➔ Fila 18 Resistencia</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="led6">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #f97316;"></span>
+            <span>LED 6 Naranja (CH9)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #fb923c;">CH9 ➔ Fila 21 Resistencia</span>
+        </button>
+
+        <!-- RETORNO A TIERRA DE LOS 6 LEDs (CÁTODOS A RIEL -) -->
+        <div style="border-top: 1px dashed var(--card-border); margin: 8px 0 4px; padding-top: 6px; font-size: 0.73rem; color: #38bdf8; font-weight: bold; text-transform: uppercase;">
+          ⚡ 6 Puentes GND de LEDs (Cátodo ➔ Riel -)
+        </div>
+
+        <button class="cable-item-btn" data-cable="led1_gnd">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #0284c7;"></span>
+            <span>LED 1 Tierra (Fila 6)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #38bdf8;">Cátodo ➔ Riel (-)</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="led2_gnd">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #0284c7;"></span>
+            <span>LED 2 Tierra (Fila 9)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #38bdf8;">Cátodo ➔ Riel (-)</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="led3_gnd">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #0284c7;"></span>
+            <span>LED 3 Tierra (Fila 12)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #38bdf8;">Cátodo ➔ Riel (-)</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="led4_gnd">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #0284c7;"></span>
+            <span>LED 4 Tierra (Fila 15)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #38bdf8;">Cátodo ➔ Riel (-)</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="led5_gnd">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #0284c7;"></span>
+            <span>LED 5 Tierra (Fila 18)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #38bdf8;">Cátodo ➔ Riel (-)</span>
+        </button>
+
+        <button class="cable-item-btn" data-cable="led6_gnd">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="color-pill" style="background: #0284c7;"></span>
+            <span>LED 6 Tierra (Fila 21)</span>
+          </div>
+          <span style="font-size: 0.72rem; color: #38bdf8;">Cátodo ➔ Riel (-)</span>
+        </button>
+      </div>
+    </div> <!-- Fin .sidebar -->
+    </div> <!-- Fin .workspace-layout -->
+  </div> <!-- Fin de #circuitViewSection -->
+
+  <!-- CONTENEDOR 2: VISTA DE CÓDIGO FUENTE COMPLETO Y EXPLICACIÓN (ACTIVADO CON BOTÓN </>) -->
+  <div id="codeViewSection" class="code-view-container" style="display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; border-bottom: 1px solid var(--card-border); padding-bottom: 14px;">
+      <div>
+        <h2 style="font-size: 1.35rem; color: #ffffff; display: flex; align-items: center; gap: 10px;">
+          <span>💻 Código Fuente</span>
+        </h2>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <button id="btnCopyCode" class="btn-copy-code">
+          📋 Copiar Código
+        </button>
+        <button id="btnBackToCircuit" class="btn-copy-code" style="border-color: #22c55e; color: #22c55e;">
+          ⬅️ Volver al Circuito
+        </button>
+      </div>
+    </div>
+
+    <!-- Bloque de Código Preformateado -->
+    <pre class="code-box-pre" id="codePreBlock"><code>/**
+ * @file Arduino proyecto.ino
+ * @brief Jukebox de 5 Canciones con Selección por 5 Botones:
+ *        - Botón 1 (GPIO 18): Noche de Paz 🎄
+ *        - Botón 2 (GPIO 13): Super Mario Bros 🍄
+ *        - Botón 3 (GPIO 12): Star Wars (Marcha Imperial) ⚔️
+ *        - Botón 4 (GPIO 14): Piratas del Caribe 🏴‍☠️
+ *        - Botón 5 (GPIO 27): Tetris (Korobeiniki) 🕹️
+ *        Pantalla LCD 1602 I2C (D21/D22), 4 Servomotores y 6 Foquitos LED (PCA9685 D25/D26).
+ */
+
+#include &lt;Arduino.h&gt;
+#include &lt;Wire.h&gt;
+#include &lt;LiquidCrystal_I2C.h&gt;
+#include &lt;Adafruit_PWMServoDriver.h&gt;
+
+struct NoteStep {
+  int freq;
+  int durationMs;
+  const char* l1;
+  const char* l2;
+};
+
+// Configuración de Pines
+constexpr uint8_t PIN_BUZZER_D4   = 4;   // Pin D4 para el Zumbador
+constexpr uint8_t PIN_LED_ONBOARD = 2;   // LED Azul indicador en placa ESP32
+
+// 5 Pines de Entrada para los 5 Pulsadores (INPUT_PULLUP interno, van a GND)
+constexpr uint8_t PIN_BTN_NOCHE   = 18;  // Botón 1: Noche de Paz 🎄
+constexpr uint8_t PIN_BTN_MARIO   = 13;  // Botón 2: Super Mario Bros 🍄
+constexpr uint8_t PIN_BTN_SW      = 12;  // Botón 3: Star Wars ⚔️
+constexpr uint8_t PIN_BTN_PIRATES = 14;  // Botón 4: Piratas del Caribe 🏴‍☠️
+constexpr uint8_t PIN_BTN_TETRIS  = 27;  // Botón 5: Tetris 🕹️
+
+// BUS I2C 1 (Exclusivo para Pantalla LCD)
+constexpr uint8_t PIN_LCD_SDA     = 21;  // SDA Exclusivo Pantalla LCD
+constexpr uint8_t PIN_LCD_SCL     = 22;  // SCL Exclusivo Pantalla LCD
+
+// BUS I2C 2 (Totalmente separado y Exclusivo para PCA9685)
+constexpr uint8_t PIN_PCA_SDA     = 25;  // SDA Exclusivo PCA9685 (Pin D25)
+constexpr uint8_t PIN_PCA_SCL     = 26;  // SCL Exclusivo PCA9685 (Pin D26)
+
+TwoWire I2C_Servos = TwoWire(1);
+
+// Controladores
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40, I2C_Servos);
+
+// Constantes de Servos (Canales 0 a 3)
+constexpr uint8_t SERVO_CH0 = 0;
+constexpr uint8_t SERVO_CH1 = 1;
+constexpr uint8_t SERVO_CH2 = 2;
+constexpr uint8_t SERVO_CH3 = 3;
+constexpr int SERVOMIN = 125;
+constexpr int SERVOMAX = 575;
+
+// Constantes de 6 LEDs (Canales 4 a 9)
+constexpr uint8_t LED_START_CH = 4;
+constexpr uint8_t LED_COUNT    = 6;
+
+void setServoAngle(uint8_t ch, int angle) {
+  angle = constrain(angle, 0, 180);
+  const int pulse = map(angle, 0, 180, SERVOMIN, SERVOMAX);
+  pwm.setPWM(ch, 0, pulse);
+}
+
+void setDualServos(int angleCh0, int angleCh1) {
+  setServoAngle(SERVO_CH0, angleCh0);
+  setServoAngle(SERVO_CH1, angleCh1);
+}
+
+void resetAllServos() {
+  setServoAngle(SERVO_CH0, 90);
+  setServoAngle(SERVO_CH1, 90);
+  setServoAngle(SERVO_CH2, 90);
+  setServoAngle(SERVO_CH3, 90);
+}
+
+void setLedBrightness(uint8_t index, uint16_t brightness) {
+  if (index &lt; LED_COUNT) {
+    if (brightness &gt;= 4095) {
+      pwm.setPWM(LED_START_CH + index, 4096, 0); // Full ON
+    } else if (brightness == 0) {
+      pwm.setPWM(LED_START_CH + index, 0, 4096); // Full OFF
+    } else {
+      pwm.setPWM(LED_START_CH + index, 0, brightness);
+    }
+  }
+}
+
+void setAllLeds(uint16_t brightness) {
+  for (uint8_t i = 0; i &lt; LED_COUNT; i++) {
+    setLedBrightness(i, brightness);
+  }
+}
+
+void updateLedsByMusic(int freq) {
+  if (freq == 0) {
+    setAllLeds(0);
+    return;
+  }
+  int activeCount = map(freq, 220, 800, 1, LED_COUNT);
+  activeCount = constrain(activeCount, 1, (int)LED_COUNT);
+  for (uint8_t i = 0; i &lt; LED_COUNT; i++) {
+    setLedBrightness(i, (i &lt; activeCount) ? 4095 : 0);
+  }
+}
+
+// Frecuencias de notas musicales (Hz)
+constexpr int NOTE_B2 = 123;
+constexpr int NOTE_C3 = 131;
+constexpr int NOTE_D3 = 147;
+constexpr int NOTE_E3 = 165;
+constexpr int NOTE_F3 = 175;
+constexpr int NOTE_G3 = 196;
+constexpr int NOTE_A3 = 220;
+constexpr int NOTE_B3 = 247;
+constexpr int NOTE_C4 = 262;
+constexpr int NOTE_D4 = 294;
+constexpr int NOTE_E4 = 330;
+constexpr int NOTE_F4 = 349;
+constexpr int NOTE_FS4= 370;
+constexpr int NOTE_G4 = 392;
+constexpr int NOTE_GS4= 415;
+constexpr int NOTE_A4 = 440;
+constexpr int NOTE_AS4= 466;
+constexpr int NOTE_B4 = 494;
+constexpr int NOTE_C5 = 523;
+constexpr int NOTE_CS5= 554;
+constexpr int NOTE_D5 = 587;
+constexpr int NOTE_DS5= 622;
+constexpr int NOTE_E5 = 659;
+constexpr int NOTE_F5 = 698;
+constexpr int NOTE_FS5= 740;
+constexpr int NOTE_G5 = 784;
+constexpr int NOTE_GS5= 831;
+constexpr int NOTE_A5 = 880;
+constexpr int NOTE_B5 = 988;
+constexpr int NOTE_C6 = 1047;
+constexpr int REST    = 0;
+
+
+// 1. NOCHE DE PAZ 🎄
+const NoteStep songNoche[] = {
+  { NOTE_G4, 450, &quot; Noche de Paz,&quot;, &quot; Noche de Amor! &quot; },
+  { NOTE_A4, 250, nullptr, nullptr },
+  { NOTE_G4, 450, nullptr, nullptr },
+  { NOTE_E4, 900, nullptr, nullptr },
+  { NOTE_G4, 450, nullptr, nullptr },
+  { NOTE_A4, 250, nullptr, nullptr },
+  { NOTE_G4, 450, nullptr, nullptr },
+  { NOTE_E4, 900, nullptr, nullptr },
+  { NOTE_D5, 700, &quot;  Todo duerme   &quot;, &quot;  en derredor   &quot; },
+  { NOTE_D5, 450, nullptr, nullptr },
+  { NOTE_B4, 900, nullptr, nullptr },
+  { NOTE_C5, 700, &quot;Entre los astros&quot;, &quot;esparcen su luz &quot; },
+  { NOTE_C5, 450, nullptr, nullptr },
+  { NOTE_G4, 900, nullptr, nullptr },
+  { NOTE_A4, 450, &quot;Brilla estrella &quot;, &quot; de bendicion!  &quot; },
+  { NOTE_A4, 300, nullptr, nullptr },
+  { NOTE_C5, 300, nullptr, nullptr },
+  { NOTE_B4, 300, nullptr, nullptr },
+  { NOTE_A4, 300, nullptr, nullptr },
+  { NOTE_G4, 450, nullptr, nullptr },
+  { NOTE_A4, 250, nullptr, nullptr },
+  { NOTE_G4, 450, nullptr, nullptr },
+  { NOTE_E4, 900, nullptr, nullptr },
+  { NOTE_D5, 700, &quot;   Nace ya el   &quot;, &quot;  Salvador! *   &quot; },
+  { NOTE_D5, 300, nullptr, nullptr },
+  { NOTE_F5, 300, nullptr, nullptr },
+  { NOTE_D5, 300, nullptr, nullptr },
+  { NOTE_B4, 400, nullptr, nullptr },
+  { NOTE_C5, 800, nullptr, nullptr },
+  { NOTE_E5, 800, nullptr, nullptr },
+  { NOTE_C5, 500, &quot;Cristo Nacio! * &quot;, &quot;  Aleluya! *    &quot; },
+  { NOTE_G4, 300, nullptr, nullptr },
+  { NOTE_E4, 400, nullptr, nullptr },
+  { NOTE_G4, 400, nullptr, nullptr },
+  { NOTE_F4, 300, nullptr, nullptr },
+  { NOTE_D4, 400, nullptr, nullptr },
+  { NOTE_C4, 1100, nullptr, nullptr }
+};
+
+// 2. SUPER MARIO BROS 🍄
+const NoteStep songMario[] = {
+  { NOTE_E5, 120, &quot;SUPER MARIO BROS&quot;, &quot;  WORLD 1-1 *   &quot; },
+  { NOTE_E5, 120, nullptr, nullptr },
+  { REST,    120, nullptr, nullptr },
+  { NOTE_E5, 120, nullptr, nullptr },
+  { REST,    120, nullptr, nullptr },
+  { NOTE_C5, 120, nullptr, nullptr },
+  { NOTE_E5, 150, nullptr, nullptr },
+  { NOTE_G5, 250, &quot;   MARIO *01    &quot;, &quot; COINS x05 [?]  &quot; },
+  { REST,    150, nullptr, nullptr },
+  { NOTE_G4, 250, nullptr, nullptr },
+  { REST,    180, nullptr, nullptr },
+  { NOTE_C5, 200, &quot; Let&#x27;s-a Go! *  &quot;, &quot;  1-UP MUSHROOM &quot; },
+  { REST,     80, nullptr, nullptr },
+  { NOTE_G4, 200, nullptr, nullptr },
+  { REST,     80, nullptr, nullptr },
+  { NOTE_E4, 200, nullptr, nullptr },
+  { REST,     80, nullptr, nullptr },
+  { NOTE_A4, 180, nullptr, nullptr },
+  { NOTE_B4, 180, nullptr, nullptr },
+  { NOTE_AS4,150, nullptr, nullptr },
+  { NOTE_A4, 180, nullptr, nullptr },
+  { NOTE_G4, 160, &quot;   SUPER STAR   &quot;, &quot; * * INVINCIBLE &quot; },
+  { NOTE_E5, 160, nullptr, nullptr },
+  { NOTE_G5, 160, nullptr, nullptr },
+  { NOTE_A5, 220, nullptr, nullptr },
+  { NOTE_F5, 140, nullptr, nullptr },
+  { NOTE_G5, 140, nullptr, nullptr },
+  { REST,     80, nullptr, nullptr },
+  { NOTE_E5, 180, nullptr, nullptr },
+  { NOTE_C5, 140, nullptr, nullptr },
+  { NOTE_D5, 140, nullptr, nullptr },
+  { NOTE_B4, 220, &quot; LEVEL CLEAR! * &quot;, &quot;  STAGE PASSED  &quot; }
+};
+
+// 3. STAR WARS: MARCHA IMPERIAL ⚔️
+const NoteStep songStarWars[] = {
+  { NOTE_A4, 450, &quot;  STAR WARS *   &quot;, &quot;IMPERIAL MARCH ⚔&quot; },
+  { NOTE_A4, 450, nullptr, nullptr },
+  { NOTE_A4, 450, nullptr, nullptr },
+  { NOTE_F4, 320, nullptr, nullptr },
+  { NOTE_C5, 150, nullptr, nullptr },
+  { NOTE_A4, 450, &quot;LORD VADER RULES&quot;, &quot; THE EMPIRE ⚔️  &quot; },
+  { NOTE_F4, 320, nullptr, nullptr },
+  { NOTE_C5, 150, nullptr, nullptr },
+  { NOTE_A4, 800, nullptr, nullptr },
+  { REST,    150, nullptr, nullptr },
+  { NOTE_E5, 450, &quot;JOIN THE DARK   &quot;, &quot;  SIDE OF FORCE &quot; },
+  { NOTE_E5, 450, nullptr, nullptr },
+  { NOTE_E5, 450, nullptr, nullptr },
+  { NOTE_F5, 320, nullptr, nullptr },
+  { NOTE_C5, 150, nullptr, nullptr },
+  { NOTE_GS4,450, &quot; DEATH STAR ⚡  &quot;, &quot; FIRE LASER! ⚔️ &quot; },
+  { NOTE_F4, 320, nullptr, nullptr },
+  { NOTE_C5, 150, nullptr, nullptr },
+  { NOTE_A4, 850, nullptr, nullptr }
+};
+
+// 4. PIRATAS DEL CARIBE 🏴‍☠️
+const NoteStep songPirates[] = {
+  { NOTE_D4, 150, &quot;PIRATES OF THE  &quot;, &quot; CARIBBEAN! 🏴‍☠️ &quot; },
+  { NOTE_D4, 150, nullptr, nullptr },
+  { NOTE_D4, 150, nullptr, nullptr },
+  { NOTE_D4, 150, nullptr, nullptr },
+  { NOTE_D4, 150, nullptr, nullptr },
+  { NOTE_D4, 150, nullptr, nullptr },
+  { NOTE_D4, 150, nullptr, nullptr },
+  { NOTE_D4, 150, nullptr, nullptr },
+  { NOTE_A4, 160, &quot;JACK SPARROW ⚔️ &quot;, &quot; BLACK PEARL ⚓  &quot; },
+  { NOTE_C5, 160, nullptr, nullptr },
+  { NOTE_D5, 260, nullptr, nullptr },
+  { NOTE_D5, 260, nullptr, nullptr },
+  { NOTE_D5, 160, nullptr, nullptr },
+  { NOTE_E5, 160, nullptr, nullptr },
+  { NOTE_F5, 260, &quot; HE&#x27;S A PIRATE! &quot;, &quot; FULL SAILS! 🌊 &quot; },
+  { NOTE_F5, 260, nullptr, nullptr },
+  { NOTE_F5, 160, nullptr, nullptr },
+  { NOTE_G5, 160, nullptr, nullptr },
+  { NOTE_E5, 260, nullptr, nullptr },
+  { NOTE_E5, 260, nullptr, nullptr },
+  { NOTE_D5, 160, nullptr, nullptr },
+  { NOTE_C5, 160, nullptr, nullptr },
+  { NOTE_D5, 500, &quot; TREASURE GOLD! &quot;, &quot;  YO HO HO! 🏴‍☠️  &quot; }
+};
+
+// 5. TETRIS (KOROBEINIKI) 🕹️
+const NoteStep songTetris[] = {
+  { NOTE_E5, 280, &quot; TETRIS THEME 🕹️&quot;, &quot;   LINE CLEAR!  &quot; },
+  { NOTE_B4, 160, nullptr, nullptr },
+  { NOTE_C5, 160, nullptr, nullptr },
+  { NOTE_D5, 280, nullptr, nullptr },
+  { NOTE_C5, 160, nullptr, nullptr },
+  { NOTE_B4, 160, nullptr, nullptr },
+  { NOTE_A4, 280, &quot;SCORE: 999999 🕹️&quot;, &quot; LEVEL 10 SPEED &quot; },
+  { NOTE_A4, 160, nullptr, nullptr },
+  { NOTE_C5, 160, nullptr, nullptr },
+  { NOTE_E5, 280, nullptr, nullptr },
+  { NOTE_D5, 160, nullptr, nullptr },
+  { NOTE_C5, 160, nullptr, nullptr },
+  { NOTE_B4, 380, &quot;T-SPIN DOUBLE!  &quot;, &quot;  BLOCKS DOWN!  &quot; },
+  { NOTE_C5, 160, nullptr, nullptr },
+  { NOTE_D5, 280, nullptr, nullptr },
+  { NOTE_E5, 280, nullptr, nullptr },
+  { NOTE_C5, 280, nullptr, nullptr },
+  { NOTE_A4, 280, nullptr, nullptr },
+  { NOTE_A4, 400, &quot; TETRIS WINNER! &quot;, &quot; TOP RECORD! 🏆 &quot; }
+};
+
+// Estructura de Debounce para los 5 botones
+struct ButtonWatcher {
+  uint8_t pin;
+  int lastSteadyState;
+  int lastFlickerState;
+  unsigned long lastDebounceMs;
+};
+
+ButtonWatcher buttons[5] = {
+  { PIN_BTN_NOCHE,   HIGH, HIGH, 0 },
+  { PIN_BTN_MARIO,   HIGH, HIGH, 0 },
+  { PIN_BTN_SW,      HIGH, HIGH, 0 },
+  { PIN_BTN_PIRATES, HIGH, HIGH, 0 },
+  { PIN_BTN_TETRIS,  HIGH, HIGH, 0 }
+};
+
+int activeSong = -1; // -1: Ninguna seleccionada, 0..4: Cancion elegida
+bool isPlaying = false;
+bool isPaused  = false;
+size_t currentStep = 0; // Posicion actual dentro de la cancion para poder reanudar
+
+void showLcdMessage(const char* l1, const char* l2) {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(l1);
+  lcd.setCursor(0, 1);
+  lcd.print(l2);
+}
+
+// Pausa la cancion actual (apaga sonido, luces y deja servos quietos sin reiniciar progreso)
+void pausePlayback() {
+  noTone(PIN_BUZZER_D4);
+  digitalWrite(PIN_BUZZER_D4, LOW);
+  digitalWrite(PIN_LED_ONBOARD, LOW);
+  resetAllServos();
+  setAllLeds(0);
+  isPlaying = false;
+  isPaused  = true;
+  showLcdMessage(&quot;  == PAUSA ==   &quot;, &quot;Pulsa para seguir&quot;);
+  Serial.println(F(&quot;⏸️ Cancion en PAUSA. Pulsa el boton para continuar.&quot;));
+}
+
+// Detiene y resetea totalmente la reproduccion
+void stopPlayback() {
+  noTone(PIN_BUZZER_D4);
+  digitalWrite(PIN_BUZZER_D4, LOW);
+  digitalWrite(PIN_LED_ONBOARD, LOW);
+  resetAllServos();
+  setAllLeds(0);
+  isPlaying = false;
+  isPaused  = false;
+  activeSong = -1;
+  currentStep = 0;
+  showLcdMessage(&quot;  JUKEBOX ESP32 &quot;, &quot;Elige Boton 1..5&quot;);
+  Serial.println(F(&quot;⏹️ Reproduccion FINALIZADA.&quot;));
+}
+
+// Chequea si cualquiera de los 5 botones fue presionado.
+// Retorna 0..4 según el botón pulsado, o -1 si ninguno.
+int checkAnyButtonPressed() {
+  for (int b = 0; b &lt; 5; b++) {
+    int current = digitalRead(buttons[b].pin);
+    if (current != buttons[b].lastFlickerState) {
+      buttons[b].lastDebounceMs = millis();
+      buttons[b].lastFlickerState = current;
+    }
+    if ((millis() - buttons[b].lastDebounceMs) &gt; 40) {
+      if (buttons[b].lastSteadyState == HIGH &amp;&amp; current == LOW) {
+        buttons[b].lastSteadyState = current;
+        return b; // Botón presionado confirmado
+      }
+      buttons[b].lastSteadyState = current;
+    }
+  }
+  return -1;
+}
+
+// Maneja la acción al pulsar un botón:
+// - Si es el mismo botón y está sonando -&gt; PAUSA.
+// - Si es el mismo botón y está en pausa -&gt; REANUDA.
+// - Si es otro botón -&gt; Cambia inmediatamente a esa nueva canción desde el inicio.
+void handleButtonAction(int btn) {
+  if (btn &lt; 0 || btn &gt; 4) return;
+
+  if (activeSong == btn) {
+    if (isPlaying) {
+      pausePlayback();
+    } else if (isPaused) {
+      isPaused = false;
+      isPlaying = true;
+      Serial.print(F(&quot;▶️ REANUDANDO cancion: &quot;));
+      Serial.println(btn + 1);
+    } else {
+      currentStep = 0;
+      isPaused = false;
+      isPlaying = true;
+    }
+  } else {
+    // Canción distinta seleccionada: reiniciar paso y reproducir
+    activeSong = btn;
+    currentStep = 0;
+    isPaused = false;
+    isPlaying = true;
+    Serial.print(F(&quot;🎵 Seleccionada nueva cancion: &quot;));
+    Serial.println(btn + 1);
+  }
+}
+
+// Toca una nota con verificación continua de interrupción por botones
+bool playNoteInterruptible(int freq, int durationMs) {
+  if (freq != REST) {
+    digitalWrite(PIN_LED_ONBOARD, HIGH);
+    tone(PIN_BUZZER_D4, freq, durationMs);
+  } else {
+    digitalWrite(PIN_LED_ONBOARD, LOW);
+    noTone(PIN_BUZZER_D4);
+  }
+
+  const unsigned long start = millis();
+  while (millis() - start &lt; (unsigned long)durationMs) {
+    int pressedBtn = checkAnyButtonPressed();
+    if (pressedBtn != -1) {
+      handleButtonAction(pressedBtn);
+      return false; // Interrumpido por botón
+    }
+    delay(4);
+  }
+
+  noTone(PIN_BUZZER_D4);
+  digitalWrite(PIN_LED_ONBOARD, LOW);
+  return true;
+}
+
+// Reproduce la lista de notas seleccionada desde currentStep
+void executeSong(const NoteStep* steps, size_t totalSteps, const char* title) {
+  Serial.print(F(&quot;▶️ Ejecutando: &quot;));
+  Serial.println(title);
+
+  for (size_t i = currentStep; i &lt; totalSteps; i++) {
+    if (!isPlaying) {
+      currentStep = i; // Guardar punto exacto si se pausó
+      return;
+    }
+
+    currentStep = i;
+
+    if (steps[i].l1 != nullptr) {
+      showLcdMessage(steps[i].l1, steps[i].l2);
+    }
+
+    // Coreografía Servos:
+    // Servo 0: compás rítmico
+    const int a0 = (i % 2 == 0) ? 35 : 145;
+    // Servo 1: tono de notas
+    int a1 = 90;
+    if (steps[i].freq != REST) {
+      a1 = map(steps[i].freq, NOTE_A3, NOTE_C6, 20, 160);
+      a1 = constrain(a1, 15, 165);
+    }
+    setDualServos(a0, a1);
+
+    // 💡 6 LEDs: Vúmetro dinámico
+    updateLedsByMusic(steps[i].freq);
+
+    if (!playNoteInterruptible(steps[i].freq, steps[i].durationMs)) {
+      return; // Pausado o cambiado de canción
+    }
+
+    setServoAngle(SERVO_CH1, 180 - a1);
+    setAllLeds(250); // Leve respiración
+
+    // Pausa corta entre notas
+    const int pauseMs = steps[i].durationMs * 0.25;
+    const unsigned long pStart = millis();
+    while (millis() - pStart &lt; (unsigned long)pauseMs) {
+      int pBtn = checkAnyButtonPressed();
+      if (pBtn != -1) {
+        handleButtonAction(pBtn);
+        return;
+      }
+      delay(4);
+    }
+  }
+
+  // Final con Servos 2 y 3 + Estroboscópico de LEDs
+  if (isPlaying) {
+    showLcdMessage(&quot;  Fin Cancion!  &quot;, &quot;Show Servos&amp;LEDs&quot;);
+    setDualServos(90, 90);
+
+    for (int r = 0; r &lt; 4; r++) {
+      if (checkAnyButtonPressed() != -1) {
+        stopPlayback();
+        return;
+      }
+      tone(PIN_BUZZER_D4, NOTE_C5, 90);
+      setServoAngle(SERVO_CH2, 20);
+      setServoAngle(SERVO_CH3, 160);
+      setLedBrightness(0, 4095); setLedBrightness(2, 4095); setLedBrightness(4, 4095);
+      setLedBrightness(1, 0);    setLedBrightness(3, 0);    setLedBrightness(5, 0);
+      delay(120);
+      noTone(PIN_BUZZER_D4);
+
+      tone(PIN_BUZZER_D4, NOTE_E5, 90);
+      setServoAngle(SERVO_CH2, 160);
+      setServoAngle(SERVO_CH3, 20);
+      setLedBrightness(0, 0);    setLedBrightness(2, 0);    setLedBrightness(4, 0);
+      setLedBrightness(1, 4095); setLedBrightness(3, 4095); setLedBrightness(5, 4095);
+      delay(120);
+      noTone(PIN_BUZZER_D4);
+
+      tone(PIN_BUZZER_D4, NOTE_G5, 110);
+      setServoAngle(SERVO_CH2, 40);
+      setServoAngle(SERVO_CH3, 40);
+      setAllLeds(4095);
+      delay(120);
+      setServoAngle(SERVO_CH2, 140);
+      setServoAngle(SERVO_CH3, 140);
+      setAllLeds(0);
+      delay(120);
+      noTone(PIN_BUZZER_D4);
+    }
+
+    resetAllServos();
+    setAllLeds(0);
+    isPlaying = false;
+    activeSong = -1;
+    showLcdMessage(&quot;  JUKEBOX ESP32 &quot;, &quot;Elige Boton 1..5&quot;);
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(PIN_BUZZER_D4, OUTPUT);
+  pinMode(PIN_LED_ONBOARD, OUTPUT);
+  digitalWrite(PIN_BUZZER_D4, LOW);
+  digitalWrite(PIN_LED_ONBOARD, LOW);
+
+  // Configuración de los 5 botones con PULLUP interno
+  for (int b = 0; b &lt; 5; b++) {
+    pinMode(buttons[b].pin, INPUT_PULLUP);
+  }
+
+  // BUS 1: LCD I2C en D21 / D22
+  Wire.begin(PIN_LCD_SDA, PIN_LCD_SCL, 100000);
+  lcd.init();
+  lcd.backlight();
+  lcd.display();
+  showLcdMessage(&quot;  JUKEBOX ESP32 &quot;, &quot;Iniciando...&quot;);
+
+  // BUS 2: PCA9685 en D25 / D26
+  I2C_Servos.begin(PIN_PCA_SDA, PIN_PCA_SCL, 100000);
+  pwm.begin();
+  pwm.setPWMFreq(50);
+
+  // Test de LEDs
+  for (uint8_t l = 0; l &lt; LED_COUNT; l++) {
+    setLedBrightness(l, 4095);
+    delay(50);
+    setLedBrightness(l, 0);
+  }
+  setAllLeds(0);
+
+  // Test de Servos
+  setServoAngle(SERVO_CH0, 45); setServoAngle(SERVO_CH1, 135);
+  setServoAngle(SERVO_CH2, 45); setServoAngle(SERVO_CH3, 135);
+  delay(250);
+  resetAllServos();
+
+  showLcdMessage(&quot;  JUKEBOX ESP32 &quot;, &quot;Elige Boton 1..5&quot;);
+
+  Serial.println(F(&quot;\n==================================================&quot;));
+  Serial.println(F(&quot;🎵 JUKEBOX 5 CANCIONES + 4 SERVOS + 6 LEDS LISTA 🔘&quot;));
+  Serial.println(F(&quot;==================================================&quot;));
+  Serial.println(F(&quot;1) Pin D18 -&gt; Noche de Paz 🎄&quot;));
+  Serial.println(F(&quot;2) Pin D13 -&gt; Super Mario Bros 🍄&quot;));
+  Serial.println(F(&quot;3) Pin D12 -&gt; Star Wars (Imperial March) ⚔️&quot;));
+  Serial.println(F(&quot;4) Pin D14 -&gt; Piratas del Caribe 🏴‍☠️&quot;));
+  Serial.println(F(&quot;5) Pin D27 -&gt; Tetris Theme 🕹️&quot;));
+}
+
+void loop() {
+  if (!isPlaying) {
+    int b = checkAnyButtonPressed();
+    if (b != -1) {
+      handleButtonAction(b);
+    }
+    delay(10);
+    return;
+  }
+
+  // Reproducir la canción elegida
+  switch (activeSong) {
+    case 0:
+      executeSong(songNoche, sizeof(songNoche)/sizeof(songNoche[0]), &quot;Noche de Paz&quot;);
+      break;
+    case 1:
+      executeSong(songMario, sizeof(songMario)/sizeof(songMario[0]), &quot;Super Mario Bros&quot;);
+      break;
+    case 2:
+      executeSong(songStarWars, sizeof(songStarWars)/sizeof(songStarWars[0]), &quot;Star Wars&quot;);
+      break;
+    case 3:
+      executeSong(songPirates, sizeof(songPirates)/sizeof(songPirates[0]), &quot;Piratas del Caribe&quot;);
+      break;
+    case 4:
+      executeSong(songTetris, sizeof(songTetris)/sizeof(songTetris[0]), &quot;Tetris Theme&quot;);
+      break;
+    default:
+      isPlaying = false;
+      break;
+  }
+}
+</code></pre>
+  </div>
+</div>
+
+<script>
+  // BASE DE DATOS DE CABLES Y PUNTOS EXACTOS
+  const CABLES_DATA = {
+    "sig_d4": {
+      name: "Cable Amarillo (Señal ESP32 D4)",
+      desc: "Línea de pulsos digitales y disparo HIGH",
+      origin: "Shield Fila D4, Pin S (Exterior)",
+      dest: "Protoboard Fila 25, Columna B",
+      hole: "Orificio 25-B (Exclusivo)",
+      volt: "3.3V (HIGH / LOW)",
+      wireId: "wire_sig_d4",
+      pts: ["pt_shield_s", "pt_proto_25_b"],
+      note: "Envía los beeps desde el GPIO 4. Llega a la columna B, dejando la columna E libre para el zumbador."
+    },
+    "buzz_purple": {
+      name: "Cable Morado (Buzzer I/O)",
+      desc: "Entrada de disparo del zumbador MH-FMG",
+      origin: "Módulo Zumbador Pin I/O (Central)",
+      dest: "Protoboard Fila 25, Columna E",
+      hole: "Orificio 25-E (Exclusivo)",
+      volt: "3.3V Lógico",
+      wireId: "wire_buzz_purple",
+      pts: ["pt_buzz_io", "pt_proto_25_e"],
+      note: "Recibe los pulsos a través de la pista interna de la fila 25 de la protoboard. ¡Cero interferencias!"
+    },
+    "vcc_shield": {
+      name: "Cable Rojo (USB 5V / Shield USB5V)",
+      desc: "Alimentación directa de 5V tomada del pin USB5V del Shield",
+      origin: "Shield Pin USB5V (x=583, y=78)",
+      dest: "Protoboard Riel Positivo (+) Fila 11",
+      hole: "Orificio Riel + (Fila 11)",
+      volt: "5.0V USB",
+      wireId: "wire_vcc_shield",
+      pts: ["pt_shield_v", "pt_proto_rail_vcc"],
+      note: "Distribuye los 5V directos de la entrada USB de tu placa de extensión hacia el riel (+) de la protoboard para alimentar el zumbador y la pantalla LCD 1602."
+    },
+    "gnd_shield": {
+      name: "Cable Negro (Shield GND)",
+      desc: "Retorno común de corriente (Tierra)",
+      origin: "Shield Fila D4, Pin G (Interior - Pegado al ESP32)",
+      dest: "Protoboard Riel Negativo (-) Fila 8",
+      hole: "Orificio Riel - (Fila 8)",
+      volt: "0.0V (GND)",
+      wireId: "wire_gnd_shield",
+      pts: ["pt_shield_g", "pt_proto_rail_gnd"],
+      note: "Establece la masa común de todo el circuito. Pasa por el arco superior sin cruzar ningún cable."
+    },
+    "buzz_white": {
+      name: "Cable Blanco (Buzzer VCC)",
+      desc: "Alimentación positiva del zumbador",
+      origin: "Módulo Zumbador Pin VCC (Superior)",
+      dest: "Protoboard Fila 24, Columna E",
+      hole: "Orificio 24-E (Exclusivo)",
+      volt: "5.0V / 3.3V",
+      wireId: "wire_buzz_white",
+      pts: ["pt_buzz_vcc", "pt_proto_24_e"],
+      note: "Recibe corriente desde el riel rojo a través del pequeño puente rojo colocado en la columna B."
+    },
+    "buzz_blue": {
+      name: "Cable Azul (Buzzer GND)",
+      desc: "Tierra común del módulo zumbador",
+      origin: "Módulo Zumbador Pin GND (Inferior)",
+      dest: "Protoboard Fila 26, Columna E",
+      hole: "Orificio 26-E (Exclusivo)",
+      volt: "0.0V (GND)",
+      wireId: "wire_buzz_blue",
+      pts: ["pt_buzz_gnd", "pt_proto_26_e"],
+      note: "Retorna a masa a través del pequeño puente colocado en la columna B hacia el riel azul."
+    },
+    "lcd_gnd": {
+      name: "Cable Azul (LCD GND)",
+      desc: "Tierra común de la Pantalla LCD 1602",
+      origin: "Módulo I2C HW-61, Pin GND (Pin 1)",
+      dest: "Protoboard Riel Negativo (-) Fila 40",
+      hole: "Riel Negativo (-) (Fila 40)",
+      volt: "0.0V (GND)",
+      wireId: "wire_lcd_gnd",
+      pts: ["pt_lcd_gnd_pin", "pt_proto_rail_gnd_lcd"],
+      note: "Conecta la tierra del módulo adaptador PCF8574T al riel negativo de la protoboard."
+    },
+    "lcd_vcc": {
+      name: "Cable Rojo (LCD VCC 5V)",
+      desc: "Alimentación de 5V para Display y Backlight",
+      origin: "Módulo I2C HW-61, Pin VCC (Pin 2)",
+      dest: "Protoboard Riel Positivo (+) Fila 40",
+      hole: "Riel Positivo (+) (Fila 40)",
+      volt: "5.0V USB",
+      wireId: "wire_lcd_vcc",
+      pts: ["pt_lcd_vcc_pin", "pt_proto_rail_vcc_lcd"],
+      note: "Proporciona 5V al controlador HD44780 y la retroiluminación azul para un contraste nítido."
+    },
+    "lcd_sda": {
+      name: "Cable Verde (LCD SDA Datos I2C)",
+      desc: "Línea bidireccional de datos I2C (Serial Data)",
+      origin: "Módulo I2C HW-61, Pin SDA (Pin 3)",
+      dest: "ESP32 Shield Pin D21 (GPIO 21)",
+      hole: "Cabecera Auxiliar Pin D21",
+      volt: "3.3V I2C Data",
+      wireId: "wire_lcd_sda",
+      pts: ["pt_lcd_sda_pin", "pt_shield_sda_d21"],
+      note: "Transmite los caracteres de la letra de 'Noche de Paz' desde el microcontrolador a la pantalla."
+    },
+    "lcd_scl": {
+      name: "Cable Amarillo (LCD SCL Reloj I2C)",
+      desc: "Línea de sincronización de reloj I2C (Serial Clock)",
+      origin: "Módulo I2C HW-61, Pin SCL (Pin 4)",
+      dest: "ESP32 Shield Pin D22 (GPIO 22)",
+      hole: "Cabecera Auxiliar Pin D22",
+      volt: "3.3V I2C Clock",
+      wireId: "wire_lcd_scl",
+      pts: ["pt_lcd_scl_pin", "pt_shield_scl_d22"],
+      note: "Señal de reloj que sincroniza el ritmo de transferencia de datos con la velocidad musical."
+    },
+    "btn_sig": {
+      name: "Botón 1: Noche de Paz 🎄 (GPIO 18)",
+      desc: "Canción 1: Noche de Paz con letras navideñas sincronizadas y baile suave",
+      origin: "Shield Izq Pin S (Fila D18, x=95, y=514)",
+      dest: "Protoboard Fila 42, Col D (x=945, y=572.5)",
+      hole: "Orificio 42-D + Tierra en Riel (-)",
+      volt: "3.3V (INPUT_PULLUP)",
+      wireId: "wire_btn_sig",
+      pts: ["pt_shield_btn_d18", "pt_proto_btn_sig", "pt_proto_btn1_gnd_e", "pt_proto_btn1_gnd_rail"],
+      note: "Pulsar este botón reproduce 'Noche de Paz' e ilumina los LEDs con cadencia navideña."
+    },
+    "btn2_mario": {
+      name: "Botón 2: Super Mario Bros 🍄 (GPIO 13)",
+      desc: "Canción 2: Tema clásico de Super Mario del NES",
+      origin: "Shield Der Pin S (Fila D13, x=625, y=280)",
+      dest: "Protoboard Fila 46, Col D (x=945, y=622.5)",
+      hole: "Orificio 46-D + Tierra en Riel (-)",
+      volt: "3.3V (INPUT_PULLUP)",
+      wireId: "wire_btn2_mario",
+      pts: ["pt_shield_btn_d13", "pt_proto_btn2_sig", "pt_proto_btn2_gnd_e", "pt_proto_btn2_gnd_rail"],
+      note: "Pulsar este botón reproduce la melodía de Super Mario con saltos rápidos en los 4 servomotores."
+    },
+    "btn3_sw": {
+      name: "Botón 3: Star Wars ⚔️ (GPIO 12)",
+      desc: "Canción 3: Marcha Imperial de Darth Vader",
+      origin: "Shield Der Pin S (Fila D12, x=625, y=319)",
+      dest: "Protoboard Fila 50, Col D (x=945, y=672.5)",
+      hole: "Orificio 50-D + Tierra en Riel (-)",
+      volt: "3.3V (INPUT_PULLUP)",
+      wireId: "wire_btn3_sw",
+      pts: ["pt_shield_btn_d12", "pt_proto_btn3_sig", "pt_proto_btn3_gnd_e", "pt_proto_btn3_gnd_rail"],
+      note: "Pulsar este botón ejecuta la Marcha Imperial con movimientos marciales en los servos."
+    },
+    "btn4_pirates": {
+      name: "Botón 4: Piratas del Caribe 🏴‍☠️ (GPIO 14)",
+      desc: "Canción 4: He's a Pirate - Aceleración épica y ritmo enérgico",
+      origin: "Shield Der Pin S (Fila D14, x=625, y=358)",
+      dest: "Protoboard Fila 54, Col D (x=945, y=722.5)",
+      hole: "Orificio 54-D + Tierra en Riel (-)",
+      volt: "3.3V (INPUT_PULLUP)",
+      wireId: "wire_btn4_pirates",
+      pts: ["pt_shield_btn_d14", "pt_proto_btn4_sig", "pt_proto_btn4_gnd_e", "pt_proto_btn4_gnd_rail"],
+      note: "Pulsar este botón desata el ritmo de Piratas del Caribe con efectos estroboscópicos en los LEDs."
+    },
+    "btn5_tetris": {
+      name: "Botón 5: Tetris Theme 🕹️ (GPIO 27)",
+      desc: "Canción 5: Korobeiniki (Tetris A-Theme) a tempo alegre",
+      origin: "Shield Der Pin S (Fila D27, x=625, y=397)",
+      dest: "Protoboard Fila 58, Col D (x=945, y=772.5)",
+      hole: "Orificio 58-D + Tierra en Riel (-)",
+      volt: "3.3V (INPUT_PULLUP)",
+      wireId: "wire_btn5_tetris",
+      pts: ["pt_shield_btn_d27", "pt_proto_btn5_sig", "pt_proto_btn5_gnd_e", "pt_proto_btn5_gnd_rail"],
+      note: "Pulsar este botón inicia el clásico juego de Tetris con olas simultáneas en los servos."
+    },
+    "pca_sda": {
+      name: "Cable Verde (PCA9685 SDA Datos en Pin D25)",
+      desc: "Línea de datos I2C 100% independiente del bus de la pantalla LCD",
+      origin: "Módulo PCA9685 Pin SDA (Pin 4 Cabecera)",
+      dest: "ESP32 Shield Fila D25, Pin S (Exterior Derecho)",
+      hole: "Shield Pin S (Fila D25)",
+      volt: "3.3V I2C Data",
+      wireId: "wire_pca_sda",
+      pts: ["pt_pca_sda_pin", "pt_shield_d25_s"],
+      note: "Bus I2C secundario exclusivo (TwoWire 1). ¡Deja los pines D21 y D22 100% libres y dedicados solo a la pantalla!"
+    },
+    "pca_scl": {
+      name: "Cable Amarillo (PCA9685 SCL Reloj en Pin D26)",
+      desc: "Línea de reloj I2C 100% independiente del bus de la pantalla LCD",
+      origin: "Módulo PCA9685 Pin SCL (Pin 3 Cabecera)",
+      dest: "ESP32 Shield Fila D26, Pin S (Exterior Derecho)",
+      hole: "Shield Pin S (Fila D26)",
+      volt: "3.3V I2C Clock",
+      wireId: "wire_pca_scl",
+      pts: ["pt_pca_scl_pin", "pt_shield_d26_s"],
+      note: "Sincroniza el envío de ángulos hacia el controlador de servomotores sin ninguna interferencia con la pantalla."
+    },
+    "pca_vcc": {
+      name: "Cable Rojo (PCA9685 VCC Lógica)",
+      desc: "Alimentación de 3.3V / 5V para el chip PCA9685",
+      origin: "Módulo PCA9685 Pin VCC (Pin 5 Cabecera)",
+      dest: "Protoboard Riel Positivo (+) Fila 46",
+      hole: "Riel Positivo (+) (Fila 46)",
+      volt: "5.0V / 3.3V",
+      wireId: "wire_pca_vcc",
+      pts: ["pt_pca_vcc_pin", "pt_proto_rail_vcc_pca"],
+      note: "Alimenta el circuito integrado interno del PCA9685 para que procese los comandos I2C."
+    },
+    "pca_gnd": {
+      name: "Cable Azul (PCA9685 GND Lógica)",
+      desc: "Tierra común de la lógica del controlador",
+      origin: "Módulo PCA9685 Pin GND (Pin 1 Cabecera)",
+      dest: "Protoboard Riel Negativo (-) Fila 46",
+      hole: "Riel Negativo (-) (Fila 46)",
+      volt: "0.0V (GND)",
+      wireId: "wire_pca_gnd",
+      pts: ["pt_pca_gnd_pin", "pt_proto_rail_gnd_pca"],
+      note: "Unifica la referencia a tierra entre el chip PCA9685 y el microcontrolador ESP32."
+    },
+    "pca_usb_vcc": {
+      name: "Cable Rojo USB Externo (Bornera V+ Potencia Servos)",
+      desc: "Alimentación de 5V INDEPENDIENTE tomada directamente de un cargador o cable USB",
+      origin: "Cable USB Externo (Hilo Rojo +5V)",
+      dest: "Módulo PCA9685 Bornera Verde Tornillo V+",
+      hole: "Bornera Verde Tornillo V+",
+      volt: "5.0V USB Externo (Aislado del ESP32)",
+      wireId: "wire_pca_usb_vcc",
+      pts: ["pt_pca_usb_v"],
+      note: "Alimentación independiente: los servomotores reciben toda su corriente de este USB externo sin pedirle energía al ESP32."
+    },
+    "pca_usb_gnd": {
+      name: "Cable Negro USB Externo (Bornera GND Masa Servos)",
+      desc: "Retorno a masa del cable USB de alimentación externa",
+      origin: "Cable USB Externo (Hilo Negro GND)",
+      dest: "Módulo PCA9685 Bornera Verde Tornillo GND",
+      hole: "Bornera Verde Tornillo GND",
+      volt: "0.0V (GND)",
+      wireId: "wire_pca_usb_gnd",
+      pts: ["pt_pca_usb_g"],
+      note: "Cierra el circuito de los 5V externos del USB. Un puente une esta tierra con el riel negativo del protoboard para tener masa común."
+    },
+    "servo0": {
+      name: "Servo 1 (Canal 0)",
+      desc: "Servomotor SG90 conectado a CH0 del PCA9685",
+      origin: "Módulo PCA9685 Canal 0 (Fila Amarilla, Roja y Negra)",
+      dest: "Servomotor SG90 #1 (Conector Hembra 3 Pines)",
+      hole: "Banco CH0",
+      volt: "PWM (Amarillo) | V+ 5V (Rojo) | GND (Marrón)",
+      wireId: "wire_servo0_pwm",
+      pts: ["pt_servo0_plug", "ep_pca_ch0_pwm"],
+      note: "Movimientos rítmicos sincronizados con la melodía."
+    },
+    "servo1": {
+      name: "Servo 2 (Canal 1)",
+      desc: "Servomotor SG90 conectado a CH1 del PCA9685",
+      origin: "Módulo PCA9685 Canal 1 (Fila Amarilla, Roja y Negra)",
+      dest: "Servomotor SG90 #2 (Conector Hembra 3 Pines)",
+      hole: "Banco CH1",
+      volt: "PWM (Amarillo) | V+ 5V (Rojo) | GND (Marrón)",
+      wireId: "wire_servo1_pwm",
+      pts: ["pt_servo1_plug", "ep_pca_ch1_pwm"],
+      note: "Segundo servomotor para coreografías y movimientos en contrapunto."
+    },
+    "servo2": {
+      name: "Servo 3 (Canal 2)",
+      desc: "Servomotor SG90 conectado a CH2 del PCA9685",
+      origin: "Módulo PCA9685 Canal 2 (Fila Amarilla, Roja y Negra)",
+      dest: "Servomotor SG90 #3 (Conector Hembra 3 Pines)",
+      hole: "Banco CH2",
+      volt: "PWM (Amarillo) | V+ 5V (Rojo) | GND (Marrón)",
+      wireId: "wire_servo2_pwm",
+      pts: ["pt_servo2_plug", "ep_pca_ch2_pwm"],
+      note: "Tercer servomotor para efectos de olas y aplausos."
+    },
+    "servo3": {
+      name: "Servo 4 (Canal 3)",
+      desc: "Servomotor SG90 conectado a CH3 del PCA9685",
+      origin: "Módulo PCA9685 Canal 3 (Fila Amarilla, Roja y Negra)",
+      dest: "Servomotor SG90 #4 (Conector Hembra 3 Pines)",
+      hole: "Banco CH3",
+      volt: "PWM (Amarillo) | V+ 5V (Rojo) | GND (Marrón)",
+      wireId: "wire_servo3_pwm",
+      pts: ["pt_servo3_plug", "ep_pca_ch3_pwm"],
+      note: "Cuarto servomotor para el cierre de ola final en cada compás."
+    },
+    "led1": {
+      name: "LED 1 Rojo (Canal 4)",
+      desc: "Foquito LED Rojo con Resistencia 220Ω en Fila 6",
+      origin: "PCA9685 Canal 4 (Fila Amarilla PWM)",
+      dest: "Protoboard Fila 6, Col D ➔ Resistencia 220Ω ➔ Ánodo LED",
+      hole: "Fila 6 (Col D y Col B) + Riel (-)",
+      volt: "PWM Regulado (0..5V)",
+      wireId: "wire_led1_pwm",
+      pts: ["pt_pca_led1", "pt_proto_led1"],
+      note: "Pulso PWM independiente del Canal 4 que hace brillar el LED 1 al compás de la música."
+    },
+    "led2": {
+      name: "LED 2 Verde (Canal 5)",
+      desc: "Foquito LED Verde con Resistencia 220Ω en Fila 9",
+      origin: "PCA9685 Canal 5 (Fila Amarilla PWM)",
+      dest: "Protoboard Fila 9, Col D ➔ Resistencia 220Ω ➔ Ánodo LED",
+      hole: "Fila 9 (Col D y Col B) + Riel (-)",
+      volt: "PWM Regulado (0..5V)",
+      wireId: "wire_led2_pwm",
+      pts: ["pt_pca_led2", "pt_proto_led2"],
+      note: "Pulso PWM independiente del Canal 5 que ilumina el LED 2 verde."
+    },
+    "led3": {
+      name: "LED 3 Amarillo (Canal 6)",
+      desc: "Foquito LED Amarillo con Resistencia 220Ω en Fila 12",
+      origin: "PCA9685 Canal 6 (Fila Amarilla PWM)",
+      dest: "Protoboard Fila 12, Col D ➔ Resistencia 220Ω ➔ Ánodo LED",
+      hole: "Fila 12 (Col D y Col B) + Riel (-)",
+      volt: "PWM Regulado (0..5V)",
+      wireId: "wire_led3_pwm",
+      pts: ["pt_pca_led3", "pt_proto_led3"],
+      note: "Pulso PWM independiente del Canal 6 que ilumina el LED 3 amarillo."
+    },
+    "led4": {
+      name: "LED 4 Azul (Canal 7)",
+      desc: "Foquito LED Azul con Resistencia 220Ω en Fila 15",
+      origin: "PCA9685 Canal 7 (Fila Amarilla PWM)",
+      dest: "Protoboard Fila 15, Col D ➔ Resistencia 220Ω ➔ Ánodo LED",
+      hole: "Fila 15 (Col D y Col B) + Riel (-)",
+      volt: "PWM Regulado (0..5V)",
+      wireId: "wire_led4_pwm",
+      pts: ["pt_pca_led4", "pt_proto_led4"],
+      note: "Pulso PWM independiente del Canal 7 que ilumina el LED 4 azul."
+    },
+    "led5": {
+      name: "LED 5 Blanco (Canal 8)",
+      desc: "Foquito LED Blanco con Resistencia 220Ω en Fila 18",
+      origin: "PCA9685 Canal 8 (Fila Amarilla PWM)",
+      dest: "Protoboard Fila 18, Col D ➔ Resistencia 220Ω ➔ Ánodo LED",
+      hole: "Fila 18 (Col D y Col B) + Riel (-)",
+      volt: "PWM Regulado (0..5V)",
+      wireId: "wire_led5_pwm",
+      pts: ["pt_pca_led5", "pt_proto_led5"],
+      note: "Pulso PWM independiente del Canal 8 que ilumina el LED 5 blanco."
+    },
+    "led6": {
+      name: "LED 6 Naranja (Canal 9)",
+      desc: "Foquito LED Naranja con Resistencia 220Ω en Fila 21",
+      origin: "PCA9685 Canal 9 (Fila Amarilla PWM)",
+      dest: "Protoboard Fila 21, Col D ➔ Resistencia 220Ω ➔ Ánodo LED",
+      hole: "Fila 21 (Col D y Col B) + Riel (-)",
+      volt: "PWM Regulado (0..5V)",
+      wireId: "wire_led6_pwm",
+      pts: ["pt_pca_led6", "pt_proto_led6"],
+      note: "Pulso PWM independiente del Canal 9 que ilumina el LED 6 naranja."
+    },
+    "led1_gnd": {
+      name: "Cable Azul (LED 1 Cátodo a Riel -)",
+      desc: "Conexión a masa de la patita corta (cátodo) del LED 1 Rojo",
+      origin: "Protoboard Fila 6, Columna A (Cátodo LED)",
+      dest: "Protoboard Riel Negativo (-) Fila 6",
+      hole: "Fila 6 Col A ➔ Riel Negativo (-)",
+      volt: "0.0V (GND)",
+      wireId: "wire_led1_gnd",
+      pts: ["pt_led1_cat", "pt_led1_rail"],
+      note: "Retorno a masa directo del LED 1 al riel azul de tierra."
+    },
+    "led2_gnd": {
+      name: "Cable Azul (LED 2 Cátodo a Riel -)",
+      desc: "Conexión a masa de la patita corta (cátodo) del LED 2 Verde",
+      origin: "Protoboard Fila 9, Columna A (Cátodo LED)",
+      dest: "Protoboard Riel Negativo (-) Fila 9",
+      hole: "Fila 9 Col A ➔ Riel Negativo (-)",
+      volt: "0.0V (GND)",
+      wireId: "wire_led2_gnd",
+      pts: ["pt_led2_cat", "pt_led2_rail"],
+      note: "Retorno a masa directo del LED 2 al riel azul de tierra."
+    },
+    "led3_gnd": {
+      name: "Cable Azul (LED 3 Cátodo a Riel -)",
+      desc: "Conexión a masa de la patita corta (cátodo) del LED 3 Amarillo",
+      origin: "Protoboard Fila 12, Columna A (Cátodo LED)",
+      dest: "Protoboard Riel Negativo (-) Fila 12",
+      hole: "Fila 12 Col A ➔ Riel Negativo (-)",
+      volt: "0.0V (GND)",
+      wireId: "wire_led3_gnd",
+      pts: ["pt_led3_cat", "pt_led3_rail"],
+      note: "Retorno a masa directo del LED 3 al riel azul de tierra."
+    },
+    "led4_gnd": {
+      name: "Cable Azul (LED 4 Cátodo a Riel -)",
+      desc: "Conexión a masa de la patita corta (cátodo) del LED 4 Azul",
+      origin: "Protoboard Fila 15, Columna A (Cátodo LED)",
+      dest: "Protoboard Riel Negativo (-) Fila 15",
+      hole: "Fila 15 Col A ➔ Riel Negativo (-)",
+      volt: "0.0V (GND)",
+      wireId: "wire_led4_gnd",
+      pts: ["pt_led4_cat", "pt_led4_rail"],
+      note: "Retorno a masa directo del LED 4 al riel azul de tierra."
+    },
+    "led5_gnd": {
+      name: "Cable Azul (LED 5 Cátodo a Riel -)",
+      desc: "Conexión a masa de la patita corta (cátodo) del LED 5 Blanco",
+      origin: "Protoboard Fila 18, Columna A (Cátodo LED)",
+      dest: "Protoboard Riel Negativo (-) Fila 18",
+      hole: "Fila 18 Col A ➔ Riel Negativo (-)",
+      volt: "0.0V (GND)",
+      wireId: "wire_led5_gnd",
+      pts: ["pt_led5_cat", "pt_led5_rail"],
+      note: "Retorno a masa directo del LED 5 al riel azul de tierra."
+    },
+    "led6_gnd": {
+      name: "Cable Azul (LED 6 Cátodo a Riel -)",
+      desc: "Conexión a masa de la patita corta (cátodo) del LED 6 Naranja",
+      origin: "Protoboard Fila 21, Columna A (Cátodo LED)",
+      dest: "Protoboard Riel Negativo (-) Fila 21",
+      hole: "Fila 21 Col A ➔ Riel Negativo (-)",
+      volt: "0.0V (GND)",
+      wireId: "wire_led6_gnd",
+      pts: ["pt_led6_cat", "pt_led6_rail"],
+      note: "Retorno a masa directo del LED 6 al riel azul de tierra."
+    }
+  };
+
+  // GENERAR PINES DE LA PROTOBOARD DINÁMICAMENTE
+  const gProtoHoles = document.getElementById("protoHolesGroup");
+  const rowCount = 60;
+  const startY = 60;
+  const stepY = 12.5;
+  let phtml = "";
+
+  for (let r = 1; r <= rowCount; r++) {
+    const cy = startY + (r - 1) * stepY;
+
+    if (r % 5 === 0 || r === 1) {
+      phtml += `<text x="75" y="${cy + 3.5}" fill="#94a3b8" font-size="8.5" font-family="monospace" text-anchor="end">${r}</text>`;
+      phtml += `<text x="725" y="${cy + 3.5}" fill="#94a3b8" font-size="8.5" font-family="monospace">${r}</text>`;
+    }
+
+    // Rieles Izquierdos (- y +)
+    phtml += `
+      <g class="interactive-pin" data-label="Riel Negativo (-)" data-loc="Izquierda, Fila ${r}"><circle class="hole" cx="30" cy="${cy}" r="3" fill="#1e293b" stroke="#cbd5e1"/></g>
+      <g class="interactive-pin" data-label="Riel Positivo (+)" data-loc="Izquierda, Fila ${r}"><circle class="hole" cx="55" cy="${cy}" r="3" fill="#1e293b" stroke="#cbd5e1"/></g>
+    `;
+
+    // Bloque Izquierdo: Columnas A B C D E F
+    const colsL = [95, 135, 175, 215, 255, 295];
+    const letL = ["A","B","C","D","E","F"];
+    colsL.forEach((cx, idx) => {
+      phtml += `<g class="interactive-pin" data-label="Punto ${r}-${letL[idx]}" data-loc="Fila ${r}, Columna ${letL[idx]}"><circle class="hole" cx="${cx}" cy="${cy}" r="3" fill="#1e293b" stroke="#cbd5e1"/></g>`;
+    });
+
+    // Rieles Centrales (Doble par - y +)
+    phtml += `
+      <g class="interactive-pin" data-label="Riel Central 1 (-)" data-loc="Centro, Fila ${r}"><circle class="hole" cx="382" cy="${cy}" r="3" fill="#1e293b" stroke="#cbd5e1"/></g>
+      <g class="interactive-pin" data-label="Riel Central 1 (+)" data-loc="Centro, Fila ${r}"><circle class="hole" cx="398" cy="${cy}" r="3" fill="#1e293b" stroke="#cbd5e1"/></g>
+      <g class="interactive-pin" data-label="Riel Central 2 (-)" data-loc="Centro, Fila ${r}"><circle class="hole" cx="414" cy="${cy}" r="3" fill="#1e293b" stroke="#cbd5e1"/></g>
+      <g class="interactive-pin" data-label="Riel Central 2 (+)" data-loc="Centro, Fila ${r}"><circle class="hole" cx="430" cy="${cy}" r="3" fill="#1e293b" stroke="#cbd5e1"/></g>
+    `;
+
+    // Bloque Derecho: Columnas A B C D E F
+    const colsR = [475, 515, 555, 595, 635, 675];
+    const letR = ["A","B","C","D","E","F"];
+    colsR.forEach((cx, idx) => {
+      phtml += `<g class="interactive-pin" data-label="Punto ${r}-${letR[idx]}" data-loc="Bloque Der, Fila ${r}, Col ${letR[idx]}"><circle class="hole" cx="${cx}" cy="${cy}" r="3" fill="#1e293b" stroke="#cbd5e1"/></g>`;
+    });
+
+    // Rieles Derechos (- y +)
+    phtml += `
+      <g class="interactive-pin" data-label="Riel Negativo (-)" data-loc="Derecha, Fila ${r}"><circle class="hole" cx="745" cy="${cy}" r="3" fill="#1e293b" stroke="#cbd5e1"/></g>
+      <g class="interactive-pin" data-label="Riel Positivo (+)" data-loc="Derecha, Fila ${r}"><circle class="hole" cx="770" cy="${cy}" r="3" fill="#1e293b" stroke="#cbd5e1"/></g>
+    `;
+  }
+  gProtoHoles.innerHTML = phtml;
+
+  // GENERAR TRIPLETAS SHIELD SEGÚN FOTO REAL:
+  // LADO IZQUIERDO: S está al exterior (x=20), V en el medio (x=55), G pegada al chip ESP32 (x=90)
+  // LADO DERECHO:   G pegada al chip ESP32 (x=20), V en el medio (x=55), S al exterior (x=90)
+  const leftPins = ["D15","D2","D4","D16","D17","D5","D18","D19","D21","RX0","TX0","D22","D23"];
+  const rightPins = ["D13","D12","D14","D27","D26","D25","D33","D32","D35","D34","VN","VP","EN"];
+  const gLeft = document.getElementById("svgLeftTriplets");
+  const gRight = document.getElementById("svgRightTriplets");
+
+  // Rótulos de columnas en la parte inferior exactamente como la serigrafía: [ S | V | G ] y [ G | V | S ]
+  gLeft.innerHTML = `
+    <text x="20" y="530" fill="#22c55e" font-size="13" font-weight="900" text-anchor="middle">S</text>
+    <text x="55" y="530" fill="#ef4444" font-size="13" font-weight="900" text-anchor="middle">V</text>
+    <text x="90" y="530" fill="#38bdf8" font-size="13" font-weight="900" text-anchor="middle">G</text>
+    <rect x="5" y="514" width="100" height="24" rx="4" fill="none" stroke="#475569"/>
+  `;
+  gRight.innerHTML = `
+    <text x="20" y="530" fill="#38bdf8" font-size="13" font-weight="900" text-anchor="middle">G</text>
+    <text x="55" y="530" fill="#ef4444" font-size="13" font-weight="900" text-anchor="middle">V</text>
+    <text x="90" y="530" fill="#22c55e" font-size="13" font-weight="900" text-anchor="middle">S</text>
+    <rect x="5" y="514" width="100" height="24" rx="4" fill="none" stroke="#475569"/>
+  `;
+
+  // Filas Izquierdas: S (x=20, ext), V (x=55, med), G (x=90, pegada al chip)
+  leftPins.forEach((pin, i) => {
+    const y = i * 39;
+    const gRow = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    gRow.setAttribute("transform", `translate(0, ${y})`);
+    gRow.innerHTML = `
+      <text x="-10" y="5" fill="#e2e8f0" font-size="12" font-weight="bold" font-family="monospace" text-anchor="end">${pin}</text>
+      <g class="interactive-pin" data-pin="${pin}" transform="translate(20, 0)"><circle class="pin-contact" cx="0" cy="0" r="5.5" fill="#0284c7" stroke="#38bdf8" stroke-width="2"/></g>
+      <g class="interactive-pin" data-pin="VCC" transform="translate(55, 0)"><circle class="pin-contact" cx="0" cy="0" r="5.5" fill="#dc2626" stroke="#fca5a5" stroke-width="1.5"/></g>
+      <g class="interactive-pin" data-pin="GND" transform="translate(90, 0)"><circle class="pin-contact" cx="0" cy="0" r="5.5" fill="#0f172a" stroke="#64748b" stroke-width="1.8"/></g>
+    `;
+    gLeft.appendChild(gRow);
+  });
+
+  // Filas Derechas: G (x=20, pegada al chip), V (x=55, med), S (x=90, ext)
+  rightPins.forEach((pin, i) => {
+    const y = i * 39;
+    const gRow = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    gRow.setAttribute("transform", `translate(0, ${y})`);
+    gRow.innerHTML = `
+      <text x="110" y="5" fill="#e2e8f0" font-size="12" font-weight="bold" font-family="monospace">${pin}</text>
+      <g class="interactive-pin" data-pin="GND" transform="translate(20, 0)"><circle class="pin-contact" cx="0" cy="0" r="5.5" fill="#0f172a" stroke="#64748b" stroke-width="1.8"/></g>
+      <g class="interactive-pin" data-pin="VCC" transform="translate(55, 0)"><circle class="pin-contact" cx="0" cy="0" r="5.5" fill="#dc2626" stroke="#fca5a5" stroke-width="1.5"/></g>
+      <g class="interactive-pin" data-pin="${pin}" transform="translate(90, 0)"><circle class="pin-contact" cx="0" cy="0" r="5.5" fill="#0284c7" stroke="#38bdf8" stroke-width="2"/></g>
+    `;
+    gRight.appendChild(gRow);
+  });
+
+  // GENERAR PINES DE LA PLACA ESP32 CENTRAL (CABECERAS HEMBRA CON SERIGRAFÍA EXACTA)
+  const espHeadersGroup = document.getElementById("espBoardHeaders");
+  const espLeftLabels = ["3V3", "GND", "D15", "D2", "D4", "D16", "D17", "D5", "D18", "D19", "D21", "RX0", "TX0", "D22", "D23"];
+  const espRightLabels = ["VIN", "GND", "D13", "D12", "D14", "D27", "D26", "D25", "D33", "D32", "D35", "D34", "VN", "VP", "EN"];
+  let espHdrHtml = "";
+
+  // Tira Izquierda del ESP32 (x=16)
+  espLeftLabels.forEach((lbl, idx) => {
+    const py = 120 + idx * 35;
+    const isSpecial = lbl === "3V3" ? "#38bdf8" : (lbl === "GND" ? "#94a3b8" : "#cbd5e1");
+    espHdrHtml += `
+      <g class="interactive-pin" data-pin="ESP32_${lbl}" data-label="${lbl}">
+        <circle cx="16" cy="${py}" r="4.5" fill="#090d14" stroke="${isSpecial}" stroke-width="1.5"/>
+        <text x="26" y="${py + 3.5}" fill="${isSpecial}" font-size="8.5" font-weight="bold" font-family="monospace">${lbl}</text>
+      </g>
+    `;
+  });
+
+  // Tira Derecha del ESP32 (x=234)
+  espRightLabels.forEach((lbl, idx) => {
+    const py = 120 + idx * 35;
+    const isSpecial = lbl === "VIN" ? "#ef4444" : (lbl === "GND" ? "#94a3b8" : "#cbd5e1");
+    espHdrHtml += `
+      <g class="interactive-pin" data-pin="ESP32_${lbl}" data-label="${lbl}">
+        <circle cx="234" cy="${py}" r="4.5" fill="#090d14" stroke="${isSpecial}" stroke-width="1.5"/>
+        <text x="224" y="${py + 3.5}" fill="${isSpecial}" font-size="8.5" font-weight="bold" font-family="monospace" text-anchor="end">${lbl}</text>
+      </g>
+    `;
+  });
+  if (espHeadersGroup) espHeadersGroup.innerHTML = espHdrHtml;
+
+  // FUNCIÓN PARA ILUMINAR UN CABLE ESPECÍFICO
+  const inspName = document.getElementById("inspName");
+  const inspSubtitle = document.getElementById("inspSubtitle");
+  const inspOrigin = document.getElementById("inspOrigin");
+  const inspDest = document.getElementById("inspDest");
+  const inspHole = document.getElementById("inspHole");
+  const inspVolt = document.getElementById("inspVolt");
+  const inspAlert = document.getElementById("inspAlert");
+  const inspBadge = document.getElementById("inspBadge");
+
+  let activeSelectedCable = null;
+
+  function resetCableSelection() {
+    activeSelectedCable = null;
+    document.querySelectorAll(".cable-item-btn").forEach(b => b.classList.remove("selected-btn"));
+    document.querySelectorAll(".wire-interactive").forEach(w => {
+      w.classList.remove("active-wire", "dimmed");
+    });
+    document.querySelectorAll(".wire-endpoint").forEach(p => p.classList.remove("active-point"));
+
+    if (inspName) inspName.textContent = "Vista General de Cables";
+    if (inspSubtitle) inspSubtitle.textContent = "Haz click en cualquier cable para aislar su ruta";
+    if (inspOrigin) inspOrigin.textContent = "Todos los cables visibles";
+    if (inspDest) inspDest.textContent = "Colores sólidos normales";
+    if (inspHole) inspHole.textContent = "6 Conexiones Independientes";
+    if (inspVolt) inspVolt.textContent = "3.3V / 5.0V / GND";
+    if (inspBadge) {
+      inspBadge.className = "badge badge-sig";
+      inspBadge.textContent = "MODO NORMAL";
+    }
+    if (inspAlert) inspAlert.innerHTML = `💡 <strong>Colores Planos Activos:</strong> Todos los cables se muestran con sus colores sólidos normales. Haz click sobre cualquier cable para iluminarlo y volver transparentes los demás. Haz click en cualquier espacio vacío para restaurar la vista normal.`;
+  }
+
+  function selectCable(cableKey) {
+    if (activeSelectedCable === cableKey) {
+      resetCableSelection();
+      return;
+    }
+    activeSelectedCable = cableKey;
+    const data = CABLES_DATA[cableKey];
+    if (!data) return;
+
+    // Resaltar botón en el listado
+    document.querySelectorAll(".cable-item-btn").forEach(b => {
+      b.classList.toggle("selected-btn", b.getAttribute("data-cable") === cableKey);
+    });
+
+    // Dim todos los demás cables, iluminar el seleccionado
+    document.querySelectorAll(".wire-interactive").forEach(w => {
+      const isTarget = w.getAttribute("data-cable-id") === cableKey;
+      w.classList.toggle("active-wire", isTarget);
+      w.classList.toggle("dimmed", !isTarget);
+    });
+
+    // Apagar todos los endpoints anteriores
+    document.querySelectorAll(".wire-endpoint").forEach(p => p.classList.remove("active-point"));
+
+    // Iluminar en verde fluorescente los 2 puntos extremos exactos
+    data.pts.forEach(ptId => {
+      const el = document.getElementById(ptId);
+      if (el) el.classList.add("active-point");
+    });
+
+    // Actualizar tarjeta del inspector si existe
+    if (inspName) inspName.textContent = data.name;
+    if (inspSubtitle) inspSubtitle.textContent = data.desc;
+    if (inspOrigin) inspOrigin.textContent = data.origin;
+    if (inspDest) inspDest.textContent = data.dest;
+    if (inspHole) inspHole.textContent = data.hole;
+    if (inspVolt) inspVolt.textContent = data.volt;
+    if (inspBadge) {
+      inspBadge.className = "badge badge-ok";
+      inspBadge.textContent = "ILUMINADO";
+    }
+    if (inspAlert) inspAlert.innerHTML = `💡 <strong>Recorrido Aislado:</strong> ${data.note}<br><small style="color:#94a3b8;">(Haz click en cualquier espacio vacío para volver al modo normal con colores planos)</small>`;
+  }
+
+  // Eventos de clicks en cables SVG
+  document.querySelectorAll(".wire-interactive").forEach(wireEl => {
+    wireEl.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const cableId = wireEl.getAttribute("data-cable-id");
+      selectCable(cableId);
+    });
+  });
+
+  // Eventos en botones de la lista de cables
+  document.querySelectorAll(".cable-item-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      selectCable(btn.getAttribute("data-cable"));
+    });
+  });
+
+  // Eventos al hacer click en los botones físicos de la Protoboard
+  const btnMap = {
+    "gBtn1": "btn_sig",
+    "gBtn2": "btn2_mario",
+    "gBtn3": "btn3_sw",
+    "gBtn4": "btn4_pirates",
+    "gBtn5": "btn5_tetris"
+  };
+  Object.keys(btnMap).forEach(bId => {
+    const el = document.getElementById(bId);
+    if (el) {
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        selectCable(btnMap[bId]);
+      });
+    }
+  });
+
+  // CLICK EN CUALQUIER LUGAR VACÍO / AL AIRE -> RESTAURAR A COLOR NORMAL PLANO
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".wire-interactive") && !e.target.closest(".cable-item-btn") && !e.target.closest(".interactive-pin") && !e.target.closest("#svgJumperGroup") && !e.target.closest(".tab-btn")) {
+      resetCableSelection();
+    }
+  });
+
+  // JUMPER TOGGLE
+  let currentVoltage = "5.0V";
+  const jumperBtn = document.getElementById("jumperBtn");
+  const jumperText = document.getElementById("jumperText");
+  const svgJumperRect = document.getElementById("svgJumperRect");
+
+  function setJumper(v) {
+    currentVoltage = v;
+    if (jumperText) jumperText.textContent = v;
+    if (v === "3.3V") {
+      if (svgJumperRect) svgJumperRect.setAttribute("x", "5");
+      if (jumperBtn) {
+        jumperBtn.style.color = "#38bdf8";
+        jumperBtn.style.borderColor = "#38bdf8";
+      }
+    } else {
+      if (svgJumperRect) svgJumperRect.setAttribute("x", "25");
+      if (jumperBtn) {
+        jumperBtn.style.color = "#fbbf24";
+        jumperBtn.style.borderColor = "#f59e0b";
+      }
+    }
+  }
+  if (jumperBtn) jumperBtn.addEventListener("click", () => setJumper(currentVoltage === "5.0V" ? "3.3V" : "5.0V"));
+  const svgJumperGroup = document.getElementById("svgJumperGroup");
+  if (svgJumperGroup) svgJumperGroup.addEventListener("click", () => setJumper(currentVoltage === "5.0V" ? "3.3V" : "5.0V"));
+
+  // PESTAÑAS
+  const mainSvg = document.getElementById("mainSvg");
+  const gEsp = document.getElementById("gEsp32Shield");
+  const gProto = document.getElementById("gProtoboard");
+  const gBuzzer = document.getElementById("gBuzzerModule");
+  const gPhysicalWiring = document.getElementById("gPhysicalWiring");
+  const currentModeLabel = document.getElementById("currentModeLabel");
+  const canvasTitle = document.getElementById("canvasTitle");
+
+  const gLcd = document.getElementById("gLcd1602Module");
+  const gPca = document.getElementById("gPca9685Module");
+  const gServo = document.getElementById("gSg90ServosGroup");
+
+  function switchTab(mode) {
+    // Si estamos en la vista de código fuente, volver inmediatamente al circuito
+    setCodeView(false);
+
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+
+    if (mode === "all" || mode === "wiring") {
+      const tabTarget = document.getElementById("tabAll");
+      if (tabTarget) tabTarget.classList.add("active");
+      mainSvg.setAttribute("viewBox", "0 0 2400 940");
+      gEsp.style.display = "block";
+      gProto.style.display = "block";
+      gProto.setAttribute("transform", "translate(730, 30)");
+      gBuzzer.style.display = "block";
+      if (gLcd) gLcd.style.display = "block";
+      if (gPca) gPca.style.display = "block";
+      if (gServo) gServo.style.display = "block";
+      gPhysicalWiring.style.display = "block";
+      if (currentModeLabel) currentModeLabel.textContent = "Trazado Planar sin Cruces";
+      if (canvasTitle) canvasTitle.innerHTML = "<span>📐 Circuito Físico</span>";
+    } else if (mode === "esp") {
+      const tabTarget = document.getElementById("tabEsp");
+      if (tabTarget) tabTarget.classList.add("active");
+      mainSvg.setAttribute("viewBox", "0 0 720 940");
+      gEsp.style.display = "block";
+      gProto.style.display = "none";
+      gBuzzer.style.display = "none";
+      if (gLcd) gLcd.style.display = "none";
+      if (gPca) gPca.style.display = "none";
+      if (gServo) gServo.style.display = "none";
+      gPhysicalWiring.style.display = "none";
+      if (currentModeLabel) currentModeLabel.textContent = "Solo ESP32 & Shield";
+      if (canvasTitle) canvasTitle.innerHTML = "<span>🔌 ESP32 DevKit & Expansion Shield</span>";
+    } else if (mode === "proto") {
+      const tabTarget = document.getElementById("tabProto");
+      if (tabTarget) tabTarget.classList.add("active");
+      mainSvg.setAttribute("viewBox", "0 0 840 940");
+      gEsp.style.display = "none";
+      gProto.style.display = "block";
+      gProto.setAttribute("transform", "translate(20, 30)");
+      gBuzzer.style.display = "none";
+      if (gLcd) gLcd.style.display = "none";
+      if (gPca) gPca.style.display = "none";
+      if (gServo) gServo.style.display = "none";
+      gPhysicalWiring.style.display = "none";
+      if (currentModeLabel) currentModeLabel.textContent = "Solo Doble Protoboard (Centrales +/-)";
+      if (canvasTitle) canvasTitle.innerHTML = "<span>🥖 Doble Protoboard Modular (Rieles Centrales y A-F)</span>";
+    }
+  }
+
+  const tabAllBtn = document.getElementById("tabAll");
+  if (tabAllBtn) tabAllBtn.addEventListener("click", () => switchTab("all"));
+  const tabEspBtn = document.getElementById("tabEsp");
+  if (tabEspBtn) tabEspBtn.addEventListener("click", () => switchTab("esp"));
+  const tabProtoBtn = document.getElementById("tabProto");
+  if (tabProtoBtn) tabProtoBtn.addEventListener("click", () => switchTab("proto"));
+
+  // ALTERNAR ENTRE VISTA DE CIRCUITO Y VISTA DE CÓDIGO FUENTE
+  const btnCodeToggle = document.getElementById("btnCodeToggle");
+  const btnBackToCircuit = document.getElementById("btnBackToCircuit");
+  const circuitViewSection = document.getElementById("circuitViewSection");
+  const codeViewSection = document.getElementById("codeViewSection");
+  const btnCopyCode = document.getElementById("btnCopyCode");
+
+  let isCodeViewActive = false;
+
+  function setCodeView(showCode) {
+    isCodeViewActive = showCode;
+    if (showCode) {
+      circuitViewSection.style.display = "none";
+      codeViewSection.style.display = "block";
+      btnCodeToggle.classList.add("active");
+      btnCodeToggle.innerHTML = `<span style="font-family: monospace; font-size: 1.15rem; font-weight: 900;">&lt;/&gt;</span><span>Ver Circuito</span>`;
+    } else {
+      circuitViewSection.style.display = "block";
+      codeViewSection.style.display = "none";
+      btnCodeToggle.classList.remove("active");
+      btnCodeToggle.innerHTML = `<span style="font-family: monospace; font-size: 1.15rem; font-weight: 900;">&lt;/&gt;</span><span>Código Arduino</span>`;
+    }
+  }
+
+  btnCodeToggle.addEventListener("click", () => {
+    setCodeView(!isCodeViewActive);
+  });
+
+  btnBackToCircuit.addEventListener("click", () => {
+    setCodeView(false);
+  });
+
+  // COPIAR CÓDIGO AL PORTAPAPELES
+  btnCopyCode.addEventListener("click", () => {
+    const codeText = document.getElementById("codePreBlock").innerText;
+    navigator.clipboard.writeText(codeText).then(() => {
+      btnCopyCode.textContent = "✅ ¡Copiado con Éxito!";
+      btnCopyCode.style.background = "#22c55e";
+      btnCopyCode.style.color = "#000";
+      setTimeout(() => {
+        btnCopyCode.textContent = "📋 Copiar Código";
+        btnCopyCode.style.background = "#1e293b";
+        btnCopyCode.style.color = "#38bdf8";
+      }, 2500);
+    }).catch(() => {
+      btnCopyCode.textContent = "⚠️ Selecciónalo manual";
+    });
+  });
+
+  // INICIAR EN MODO NORMAL CON TODOS LOS CABLES VISIBLES Y PLANOS
+  resetCableSelection();
+</script>
+
+</body>
+</html>
