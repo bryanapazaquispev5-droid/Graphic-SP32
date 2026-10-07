@@ -127,15 +127,38 @@
       gap: 6px;
     }
 
-    /* Layout Principal */
+    /* Layout Principal Responsivo (Escritorio vs Celular / Vertical) */
     .workspace-layout {
       display: grid;
       grid-template-columns: 1fr 380px;
+      grid-template-areas:
+        "canvas   sidebar"
+        "comp     sidebar"
+        "images   sidebar";
       gap: 18px;
       margin-bottom: 18px;
+      align-items: start;
     }
-    @media (max-width: 1240px) {
-      .workspace-layout { grid-template-columns: 1fr; }
+
+    #cardCircuitCanvas { grid-area: canvas; }
+    #cardSidebarBox     { grid-area: sidebar; }
+    #cardComponentsList { grid-area: comp; }
+    #cardImagesShowcase { grid-area: images; }
+
+    /* En celulares, tablets o pantallas verticales:
+       1. Circuito Físico
+       2. Lista de Conexiones
+       3. Lista de Componentes
+       4. Imágenes de gatitos al final */
+    @media (max-width: 1024px), (orientation: portrait) {
+      .workspace-layout {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "canvas"
+          "sidebar"
+          "comp"
+          "images";
+      }
     }
 
     .card {
@@ -468,9 +491,8 @@
   <div id="circuitViewSection">
     <!-- Workspace Principal -->
     <div class="workspace-layout">
-    <div class="circuit-main-col">
     <!-- Lienzo SVG con conexiones precisas punto a punto -->
-    <div class="card">
+    <div class="card" id="cardCircuitCanvas">
       <div class="card-header">
         <div class="card-title" id="canvasTitle">
           <span>📐 Circuito Físico</span>
@@ -1465,7 +1487,7 @@
     </div>
 
     <!-- Lista de Componentes Físicos (Justo debajo del circuito gráfico) -->
-    <div class="card" style="margin-top: 14px;">
+    <div class="card" id="cardComponentsList" style="margin-top: 14px;">
       <div class="card-header" style="margin-bottom: 10px; border-bottom: 1px solid var(--card-border); padding-bottom: 8px;">
         <div class="card-title" style="font-size: 1rem; color: #38bdf8;">
           <span>📦 Lista de Componentes</span>
@@ -1585,7 +1607,7 @@
     </div>
 
     <!-- Bloque Visual de Imágenes (Alineación y Cierre de Espacio) -->
-    <div class="card" style="margin-top: 14px; padding: 16px;">
+    <div class="card" id="cardImagesShowcase" style="margin-top: 14px; padding: 16px;">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
         <div style="background: #0f172a; border: 1.5px solid #1e293b; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.3); display: flex; flex-direction: column; align-items: center;">
           <div style="width: 100%; aspect-ratio: 1 / 1; overflow: hidden; background: #000;">
@@ -1600,10 +1622,9 @@
         </div>
       </div>
     </div>
-    </div> <!-- Fin columna izquierda -->
 
     <!-- Panel Lateral: Selector de Cables e Inspector -->
-    <div class="sidebar">
+    <div class="sidebar" id="cardSidebarBox">
       <!-- Selector de Cables -->
       <div class="card cable-picker-box">
         <h3>🎯 Lista de conexiones</h3>
