@@ -2296,16 +2296,17 @@ bool isPlaying = false;
 bool isPaused  = false;
 size_t currentStep = 0; // Posicion actual dentro de la cancion para poder reanudar
 
-// Modo Demostración de Servomotor 0 con Botón 1 (Antigua canción navideña):
-// 1. Al pulsar Botón 1: Solo Servo 0 (CH0) se mueve a 0°.
+// Modo Demostración de Servomotor 0 con Botón 1:
+// 1. Al pulsar Botón 1: Servo 0 (CH0) se mueve a 0°.
 // 2. Espera 3 segundos en 0°.
 // 3. Recorre poco a poco hasta su ángulo máximo (180°).
-// 4. Inmediatamente regresa a 0° (&quot;angulo 0&quot;) y se queda ahí.
-// Los servos 1, 2 y 3 siguen con su comportamiento normal.
+// 4. Se queda parado en su límite máximo por 3 segundos.
+// 5. Vuelve a su ángulo cero y se queda ahí parado.
 enum Servo0Stage {
   S0_IDLE,
-  S0_WAIT_3S,
+  S0_WAIT_3S_AT_ZERO,
   S0_SWEEPING_UP,
+  S0_HOLD_3S_AT_MAX,
   S0_FINISH_RESET
 };
 
@@ -2329,8 +2330,8 @@ void startServo0Routine() {
   setServoAngle(SERVO_CH0, 0);
   setAllLeds(0);
 
-  // Iniciar espera de 3 segundos
-  servo0State = S0_WAIT_3S;
+  // Iniciar espera de 3 segundos en 0°
+  servo0State = S0_WAIT_3S_AT_ZERO;
   servo0TimerMs = millis();
   showLcdMessage(&quot;  MOTOR 0 EN 0  &quot;, &quot;Esperando 3s...&quot;);
   Serial.println(F(&quot;🔘 Boton 1: Solo Servo 0 (CH0) movido a 0°. Esperando 3 segundos...&quot;));
@@ -2340,9 +2341,9 @@ void updateServo0Routine() {
   if (servo0State == S0_IDLE) return;
 
   switch (servo0State) {
-    case S0_WAIT_3S:
+    case S0_WAIT_3S_AT_ZERO:
       if (millis() - servo0TimerMs &gt;= 3000) {
-        // Fin de los 3 segundos: empezar a recorrer hasta su ángulo máximo
+        // Fin de los 3 segundos en 0°: empezar a recorrer hasta su ángulo máximo
         servo0State = S0_SWEEPING_UP;
         servo0CurrentAngle = 0;
         servo0LastStepMs = millis();
@@ -2358,13 +2359,23 @@ void updateServo0Routine() {
           servo0CurrentAngle++;
           setServoAngle(SERVO_CH0, servo0CurrentAngle);
         } else {
-          // Llegó a su ángulo máximo: decir inmediatamente &quot;ángulo 0&quot;, volver a 0 y quedarse ahí
-          servo0State = S0_IDLE;
-          setServoAngle(SERVO_CH0, 0);
-          servo0CurrentAngle = 0;
-          showLcdMessage(&quot;  FIN: ANGULO 0 &quot;, &quot;Queda en 0 grados&quot;);
-          Serial.println(F(&quot;⏹️ Termino recorrido Servo 0: Inmediatamente en angulo 0 y queda fijo.&quot;));
+          // Llegó al límite máximo: quedarse parado ahí 3 segundos
+          servo0State = S0_HOLD_3S_AT_MAX;
+          servo0TimerMs = millis();
+          showLcdMessage(&quot; LIMITE MAXIMO  &quot;, &quot;Pausa 3 segundos&quot;);
+          Serial.println(F(&quot;⏸️ Servo 0 llego a su limite maximo. Quedandose parado 3 segundos...&quot;));
         }
+      }
+      break;
+
+    case S0_HOLD_3S_AT_MAX:
+      if (millis() - servo0TimerMs &gt;= 3000) {
+        // Terminaron los 3 segundos en el límite máximo: volver a ángulo 0 y quedarse parado ahí
+        servo0State = S0_IDLE;
+        setServoAngle(SERVO_CH0, 0);
+        servo0CurrentAngle = 0;
+        showLcdMessage(&quot;  FIN: ANGULO 0 &quot;, &quot;Queda en 0 grados&quot;);
+        Serial.println(F(&quot;⏹️ Regreso a angulo 0 y se queda parado permanentemente.&quot;));
       }
       break;
 
