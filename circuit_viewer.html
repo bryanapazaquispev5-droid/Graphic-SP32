@@ -2313,11 +2313,12 @@ int servo0CurrentAngle = 0;
 unsigned long servo0TimerMs = 0;
 unsigned long servo0LastStepMs = 0;
 
-// Calibración extrema forzada para Tower Pro SG90:
-// Bajamos a 380us en el mínimo y subimos a 2600us en el máximo absoluto
-constexpr int SERVO0_US_MIN = 380;
-constexpr int SERVO0_US_MAX = 2600;
-constexpr unsigned long SERVO0_SWEEP_INTERVAL_MS = 25; // Giro suave continuo
+// Control directo por Ticks PCA9685 para forzar todo el ángulo mecánico posible:
+// 90 ticks  (~440us)  -&gt; Extremo cero absoluto
+// 560 ticks (~2730us) -&gt; Extremo máximo absoluto físico (sobrepasa 180°)
+constexpr int SERVO0_TICK_MIN = 90;
+constexpr int SERVO0_TICK_MAX = 560;
+constexpr unsigned long SERVO0_SWEEP_INTERVAL_MS = 25; // Avance lento continuo
 
 void startServo0Routine() {
   if (servo0State != S0_IDLE) return;
@@ -2330,13 +2331,13 @@ void startServo0Routine() {
   activeSong = -1;
   setAllLeds(0);
 
-  // Asegura punto de partida en 0° e inicia el avance lento
-  pwm.writeMicroseconds(SERVO_CH0, SERVO0_US_MIN);
+  // Asegura el 0° absoluto e inicia el giro hacia el límite
+  pwm.setPWM(SERVO_CH0, 0, SERVO0_TICK_MIN);
   servo0CurrentAngle = 0;
   servo0State = S0_SWEEPING_UP;
   servo0LastStepMs = millis();
   showLcdMessage(&quot; FORZANDO MOTOR &quot;, &quot;0 -&gt; Maximo...&quot;);
-  Serial.println(F(&quot;🔘 Boton 1: Forzando recorrido al maximo extremo fisico...&quot;));
+  Serial.println(F(&quot;🔘 Boton 1: Forzando recorrido al maximo posible...&quot;));
 }
 
 void updateServo0Routine() {
@@ -2348,27 +2349,28 @@ void updateServo0Routine() {
         servo0LastStepMs = millis();
         if (servo0CurrentAngle &lt; 180) {
           servo0CurrentAngle++;
-          const int pulseUs = map(servo0CurrentAngle, 0, 180, SERVO0_US_MIN, SERVO0_US_MAX);
-          pwm.writeMicroseconds(SERVO_CH0, pulseUs);
+          const int tick = map(servo0CurrentAngle, 0, 180, SERVO0_TICK_MIN, SERVO0_TICK_MAX);
+          pwm.setPWM(SERVO_CH0, 0, tick);
         } else {
           // Llegó al máximo ángulo: entrar en pausa de 3 segundos
+          // Al apagar el pulso (setPWM 0,0) el motor se queda quieto en su posición sin recalentarse ni colgarse
+          pwm.setPWM(SERVO_CH0, 0, 0); 
           servo0State = S0_HOLD_3S_AT_MAX;
           servo0TimerMs = millis();
           showLcdMessage(&quot; MAXIMO ALCANZADO&quot;, &quot;Pausa 3 segundos&quot;);
-          Serial.println(F(&quot;⏸️ Llego al limite maximo. En pausa por 3 segundos...&quot;));
+          Serial.println(F(&quot;⏸️ Llego al limite maximo. Desconectando pulso para evitar bloqueo por 3s...&quot;));
         }
       }
       break;
 
     case S0_HOLD_3S_AT_MAX:
       if (millis() - servo0TimerMs &gt;= 3000) {
-        // Pasaron los 3 segundos: REGRESA INMEDIATAMENTE A 0°
-        pwm.writeMicroseconds(SERVO_CH0, SERVO0_US_MIN);
-        delay(200); // Da tiempo al motor para llegar físicamente a 0°
+        // Pasaron los 3 segundos: REGRESA DE GOLPE A SU ANGULO 0°
+        pwm.setPWM(SERVO_CH0, 0, SERVO0_TICK_MIN);
         servo0CurrentAngle = 0;
         servo0State = S0_IDLE;
         showLcdMessage(&quot; REPOSO: CERO   &quot;, &quot;Listo para pulsar&quot;);
-        Serial.println(F(&quot;⚡ Pasaron los 3s: Regreso a 0° de reposo y queda listo.&quot;));
+        Serial.println(F(&quot;⚡ Pasaron los 3s: Regreso inmediato a 0° de reposo y queda listo.&quot;));
       }
       break;
 
