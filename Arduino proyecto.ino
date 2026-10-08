@@ -48,13 +48,15 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40, I2C_Servos);
 
 // Constantes de Servos (Canales 0 a 3)
 // Constantes de Servos (Canales 0 a 3)
-// Calibración limpia y estable para Tower Pro SG90 (0° a 180° completos sin atasco):
+// Calibración amplia para clones Tower Pro SG90:
+// Con 540us-2400us los clones solo giran ~135°.
+// Expandiendo a 420us (0° real) y 2580us (180° real) completa el semicírculo entero de 180°:
 constexpr uint8_t SERVO_CH0 = 0;
 constexpr uint8_t SERVO_CH1 = 1;
 constexpr uint8_t SERVO_CH2 = 2;
 constexpr uint8_t SERVO_CH3 = 3;
-constexpr int SERVO_US_MIN = 540;  // 0° exacto
-constexpr int SERVO_US_MAX = 2400; // 180° exacto (sin forzar los topes mecánicos)
+constexpr int SERVO_US_MIN = 420;  // 0° real de inicio
+constexpr int SERVO_US_MAX = 2580; // 180° real de llegada (semicírculo completo)
 
 // Constantes de 6 LEDs (Canales 4 a 9)
 constexpr uint8_t LED_START_CH = 4;
