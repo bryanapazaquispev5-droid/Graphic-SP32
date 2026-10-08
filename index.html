@@ -2328,19 +2328,20 @@ void executeServo0MaxSweep() {
   activeSong = -1;
   setAllLeds(0);
 
-  // 1. Asegurar posición inicial en 0° (pulso mínimo extremo: 90 ticks = ~440us)
+  // 1. Asegurar posición inicial en 0°
   showLcdMessage(&quot; MOTOR 0: INICIO&quot;, &quot;En posicion 0...&quot;);
-  pwm.setPWM(SERVO_CH0, 0, 90);
+  pwm.setPWM(SERVO_CH0, 0, 100);
   delay(500);
 
-  // 2. Girar lentamente paso a paso forzando los ticks desde 90 hasta 600 (~2900us, &gt;180°)
+  // 2. Girar lentamente paso a paso forzando los ticks hasta el máximo posible (&gt;180°)
   showLcdMessage(&quot; GIRANDO FORZADO&quot;, &quot;0 -&gt; Maximo...&quot;);
-  for (int tick = 90; tick &lt;= 600; tick += 2) {
+  for (int tick = 100; tick &lt;= 550; tick += 2) {
     pwm.setPWM(SERVO_CH0, 0, tick);
-    delay(20); // Avance lento continuo
+    delay(20);
   }
 
-  // 3. Llegó al máximo absoluto: congelarse 3 segundos exactos
+  // 3. Llegó al máximo absoluto: desconectar pulso para que no tumbe el bus I2C y esperar 3 segundos
+  pwm.setPWM(SERVO_CH0, 0, 4096); // Apagar pulso en CH0 para quitar el atasco
   Serial.println(F(&quot;⏸️ Llegó al límite máximo. Pausa de 3 segundos...&quot;));
   showLcdMessage(&quot; LIMITE MAXIMO  &quot;, &quot;Pausa: 3 seg&quot;);
   delay(1000);
@@ -2349,11 +2350,16 @@ void executeServo0MaxSweep() {
   showLcdMessage(&quot; LIMITE MAXIMO  &quot;, &quot;Pausa: 1 seg&quot;);
   delay(1000);
 
-  // 4. Regreso inmediato a su posición 0° de reposo
-  Serial.println(F(&quot;⚡ Regresando de golpe a posicion 0°...&quot;));
+  // 4. Reinicializar chip I2C por si hubo caída de tensión durante el esfuerzo máximo
+  I2C_Servos.begin(PIN_PCA_SDA, PIN_PCA_SCL, 100000);
+  pwm.begin();
+  pwm.setPWMFreq(50);
+
+  // 5. Regreso garantizado a posición 0°
+  Serial.println(F(&quot;⚡ Regresando obligatoriamente a posicion 0°...&quot;));
   showLcdMessage(&quot; RETORNO A CERO &quot;, &quot;Regresando...&quot;);
-  pwm.setPWM(SERVO_CH0, 0, 90);
-  delay(600); // Tiempo para que el motor termine de girar físicamente de vuelta a 0°
+  pwm.setPWM(SERVO_CH0, 0, 100);
+  delay(700); // Tiempo suficiente para dar toda la vuelta de regreso
 
   showLcdMessage(&quot; REPOSO: CERO   &quot;, &quot;Listo para pulsar&quot;);
   Serial.println(F(&quot;✅ Retorno completado. Servo 0 en 0° listo.&quot;));

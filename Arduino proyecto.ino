@@ -345,19 +345,20 @@ void executeServo0MaxSweep() {
   activeSong = -1;
   setAllLeds(0);
 
-  // 1. Asegurar posición inicial en 0° (pulso mínimo extremo: 90 ticks = ~440us)
+  // 1. Asegurar posición inicial en 0°
   showLcdMessage(" MOTOR 0: INICIO", "En posicion 0...");
-  pwm.setPWM(SERVO_CH0, 0, 90);
+  pwm.setPWM(SERVO_CH0, 0, 100);
   delay(500);
 
-  // 2. Girar lentamente paso a paso forzando los ticks desde 90 hasta 600 (~2900us, >180°)
+  // 2. Girar lentamente paso a paso forzando los ticks hasta el máximo posible (>180°)
   showLcdMessage(" GIRANDO FORZADO", "0 -> Maximo...");
-  for (int tick = 90; tick <= 600; tick += 2) {
+  for (int tick = 100; tick <= 550; tick += 2) {
     pwm.setPWM(SERVO_CH0, 0, tick);
-    delay(20); // Avance lento continuo
+    delay(20);
   }
 
-  // 3. Llegó al máximo absoluto: congelarse 3 segundos exactos
+  // 3. Llegó al máximo absoluto: desconectar pulso para que no tumbe el bus I2C y esperar 3 segundos
+  pwm.setPWM(SERVO_CH0, 0, 4096); // Apagar pulso en CH0 para quitar el atasco
   Serial.println(F("⏸️ Llegó al límite máximo. Pausa de 3 segundos..."));
   showLcdMessage(" LIMITE MAXIMO  ", "Pausa: 3 seg");
   delay(1000);
@@ -366,11 +367,16 @@ void executeServo0MaxSweep() {
   showLcdMessage(" LIMITE MAXIMO  ", "Pausa: 1 seg");
   delay(1000);
 
-  // 4. Regreso inmediato a su posición 0° de reposo
-  Serial.println(F("⚡ Regresando de golpe a posicion 0°..."));
+  // 4. Reinicializar chip I2C por si hubo caída de tensión durante el esfuerzo máximo
+  I2C_Servos.begin(PIN_PCA_SDA, PIN_PCA_SCL, 100000);
+  pwm.begin();
+  pwm.setPWMFreq(50);
+
+  // 5. Regreso garantizado a posición 0°
+  Serial.println(F("⚡ Regresando obligatoriamente a posicion 0°..."));
   showLcdMessage(" RETORNO A CERO ", "Regresando...");
-  pwm.setPWM(SERVO_CH0, 0, 90);
-  delay(600); // Tiempo para que el motor termine de girar físicamente de vuelta a 0°
+  pwm.setPWM(SERVO_CH0, 0, 100);
+  delay(700); // Tiempo suficiente para dar toda la vuelta de regreso
 
   showLcdMessage(" REPOSO: CERO   ", "Listo para pulsar");
   Serial.println(F("✅ Retorno completado. Servo 0 en 0° listo."));
