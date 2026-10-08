@@ -47,15 +47,14 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40, I2C_Servos);
 
 // Constantes de Servos (Canales 0 a 3)
-// Calibración extrema para Tower Pro SG90:
-// Rango normal: 500us a 2400us (~180°)
-// Rango extendido al máximo físico posible del chip/motor: 450us a 2650us (>180°)
+// Constantes de Servos (Canales 0 a 3)
+// Calibración limpia y estable para Tower Pro SG90 (0° a 180° completos sin atasco):
 constexpr uint8_t SERVO_CH0 = 0;
 constexpr uint8_t SERVO_CH1 = 1;
 constexpr uint8_t SERVO_CH2 = 2;
 constexpr uint8_t SERVO_CH3 = 3;
-constexpr int SERVO_US_MIN = 450;  // 0° absoluto
-constexpr int SERVO_US_MAX = 2650; // Máximo absoluto alcanzable sin límite de 180°
+constexpr int SERVO_US_MIN = 540;  // 0° exacto
+constexpr int SERVO_US_MAX = 2400; // 180° exacto (sin forzar los topes mecánicos)
 
 // Constantes de 6 LEDs (Canales 4 a 9)
 constexpr uint8_t LED_START_CH = 4;
@@ -330,11 +329,11 @@ int servo0CurrentAngle = 0;
 unsigned long servo0TimerMs = 0;
 unsigned long servo0LastStepMs = 0;
 
-// Rutina forzada de Servomotor 0 (Canal 0):
-// Va desde 0° hasta su máximo absoluto (>180°), espera 3 segundos en el máximo y vuelve a 0°.
+// Rutina de Servomotor 0 (Canal 0) a 180° exactos:
+// Inicia en 0°, gira suavemente hasta 180°, espera 3 segundos en 180°, y regresa a 0°.
 void executeServo0MaxSweep() {
   Serial.println(F("\n============================================="));
-  Serial.println(F("🚀 INICIANDO BARRIDO FORZADO AL MAXIMO ABSOLUTO"));
+  Serial.println(F("🦾 INICIANDO BARRIDO SERVO 0 (0° -> 180° -> 3s -> 0°)"));
   Serial.println(F("============================================="));
 
   noTone(PIN_BUZZER_D4);
@@ -346,40 +345,34 @@ void executeServo0MaxSweep() {
   setAllLeds(0);
 
   // 1. Asegurar posición inicial en 0°
-  showLcdMessage(" MOTOR 0: INICIO", "En posicion 0...");
-  pwm.setPWM(SERVO_CH0, 0, 100);
-  delay(500);
+  showLcdMessage(" MOTOR 0 EN 0°  ", "Iniciando...");
+  setServoAngle(SERVO_CH0, 0);
+  delay(300);
 
-  // 2. Girar lentamente paso a paso forzando los ticks hasta el máximo posible (>180°)
-  showLcdMessage(" GIRANDO FORZADO", "0 -> Maximo...");
-  for (int tick = 100; tick <= 550; tick += 2) {
-    pwm.setPWM(SERVO_CH0, 0, tick);
-    delay(20);
+  // 2. Girar suavemente paso a paso de 0° a 180°
+  showLcdMessage(" GIRANDO SERVO  ", "0° -> 180°...");
+  for (int a = 0; a <= 180; a++) {
+    setServoAngle(SERVO_CH0, a);
+    delay(20); // 20ms por grado (~3.6s de recorrido suave continuo)
   }
 
-  // 3. Llegó al máximo absoluto: desconectar pulso para que no tumbe el bus I2C y esperar 3 segundos
-  pwm.setPWM(SERVO_CH0, 0, 4096); // Apagar pulso en CH0 para quitar el atasco
-  Serial.println(F("⏸️ Llegó al límite máximo. Pausa de 3 segundos..."));
-  showLcdMessage(" LIMITE MAXIMO  ", "Pausa: 3 seg");
+  // 3. Llegó a 180°: pausar 3 segundos exactos
+  Serial.println(F("⏸️ Llegó a 180°. Pausa de 3 segundos..."));
+  showLcdMessage(" LIMITE: 180°   ", "Pausa: 3 seg");
   delay(1000);
-  showLcdMessage(" LIMITE MAXIMO  ", "Pausa: 2 seg");
+  showLcdMessage(" LIMITE: 180°   ", "Pausa: 2 seg");
   delay(1000);
-  showLcdMessage(" LIMITE MAXIMO  ", "Pausa: 1 seg");
+  showLcdMessage(" LIMITE: 180°   ", "Pausa: 1 seg");
   delay(1000);
 
-  // 4. Reinicializar chip I2C por si hubo caída de tensión durante el esfuerzo máximo
-  I2C_Servos.begin(PIN_PCA_SDA, PIN_PCA_SCL, 100000);
-  pwm.begin();
-  pwm.setPWMFreq(50);
-
-  // 5. Regreso garantizado a posición 0°
-  Serial.println(F("⚡ Regresando obligatoriamente a posicion 0°..."));
-  showLcdMessage(" RETORNO A CERO ", "Regresando...");
-  pwm.setPWM(SERVO_CH0, 0, 100);
-  delay(700); // Tiempo suficiente para dar toda la vuelta de regreso
+  // 4. Regreso a posición 0° de reposo
+  Serial.println(F("⚡ Regresando a posición 0°..."));
+  showLcdMessage(" RETORNO A CERO ", "Regresando a 0°");
+  setServoAngle(SERVO_CH0, 0);
+  delay(600); // Tiempo para que el motor complete físicamente el giro de vuelta
 
   showLcdMessage(" REPOSO: CERO   ", "Listo para pulsar");
-  Serial.println(F("✅ Retorno completado. Servo 0 en 0° listo."));
+  Serial.println(F("✅ Retorno completado con éxito. Servo 0 en 0° listo."));
 }
 
 void showLcdMessage(const char* l1, const char* l2) {
