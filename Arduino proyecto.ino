@@ -47,14 +47,15 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40, I2C_Servos);
 
 // Constantes de Servos (Canales 0 a 3)
-// Calibración exacta para Tower Pro Micro Servo 9g SG90:
-// Los clones de Tower Pro requieren de 480us (0° real) hasta 2500us (180° real)
+// Calibración extrema para Tower Pro SG90:
+// Rango normal: 500us a 2400us (~180°)
+// Rango extendido al máximo físico posible del chip/motor: 450us a 2650us (>180°)
 constexpr uint8_t SERVO_CH0 = 0;
 constexpr uint8_t SERVO_CH1 = 1;
 constexpr uint8_t SERVO_CH2 = 2;
 constexpr uint8_t SERVO_CH3 = 3;
-constexpr int SERVO_US_MIN = 480;  // 0° real (evita corte antes de 0°)
-constexpr int SERVO_US_MAX = 2500; // 180° real (completa el recorrido total de 180°)
+constexpr int SERVO_US_MIN = 450;  // 0° absoluto
+constexpr int SERVO_US_MAX = 2650; // Máximo absoluto alcanzable sin límite de 180°
 
 // Constantes de 6 LEDs (Canales 4 a 9)
 constexpr uint8_t LED_START_CH = 4;
@@ -328,7 +329,8 @@ Servo0Stage servo0State = S0_IDLE;
 int servo0CurrentAngle = 0;
 unsigned long servo0TimerMs = 0;
 unsigned long servo0LastStepMs = 0;
-constexpr unsigned long SERVO0_SWEEP_INTERVAL_MS = 20; // 20ms por grado: giro lento (~3.6s de 0° a 180°)
+// Intervalo de paso para el giro lento (ti ti ti ti: ~35ms por grado = ~6.3 segundos en completar el recorrido)
+constexpr unsigned long SERVO0_SWEEP_INTERVAL_MS = 35;
 
 void startServo0Routine() {
   // Detener cualquier sonido o melodía previa
@@ -345,8 +347,8 @@ void startServo0Routine() {
   setServoAngle(SERVO_CH0, 0);
   servo0State = S0_SWEEPING_UP;
   servo0LastStepMs = millis();
-  showLcdMessage(" GIRANDO SERVO  ", "0 -> Maximo...");
-  Serial.println(F("🔘 Boton 1 presionado: Girando lentamente hacia el limite maximo..."));
+  showLcdMessage(" GIRANDO SERVO  ", "Lentamente...");
+  Serial.println(F("🔘 Boton 1 presionado: Iniciando giro lento paso a paso hacia el maximo..."));
 }
 
 void updateServo0Routine() {
@@ -360,23 +362,23 @@ void updateServo0Routine() {
           servo0CurrentAngle++;
           setServoAngle(SERVO_CH0, servo0CurrentAngle);
         } else {
-          // Llegó al final (ángulo máximo): quedarse parado ahí 3 segundos
+          // Llegó a su máximo ángulo: quedarse en PAUSA 3 segundos exactamente
           servo0State = S0_HOLD_3S_AT_MAX;
           servo0TimerMs = millis();
-          showLcdMessage(" LIMITE MAXIMO  ", "Pausa 3 segundos");
-          Serial.println(F("⏸️ Llego al final. Quedandose parado 3 segundos..."));
+          showLcdMessage(" MAXIMO ALCANZADO", "Pausa 3 segundos");
+          Serial.println(F("⏸️ Llego al maximo. En pausa por 3 segundos..."));
         }
       }
       break;
 
     case S0_HOLD_3S_AT_MAX:
       if (millis() - servo0TimerMs >= 3000) {
-        // Pasaron los 3 segundos: regresar a su ángulo 0° y quedarse parado ahí
+        // Terminaron los 3 segundos de pausa: REGRESA RAPIDO A SU ANGULO 0°
         servo0State = S0_IDLE;
-        setServoAngle(SERVO_CH0, 0);
+        setServoAngle(SERVO_CH0, 0); // Regreso rápido directo a 0°
         servo0CurrentAngle = 0;
-        showLcdMessage("  FIN: ANGULO 0 ", "Queda en 0 grados");
-        Serial.println(F("⏹️ Pasaron 3s: Regreso a angulo 0° y queda parado."));
+        showLcdMessage("  FIN: ANGULO 0 ", "Listo para pulsar");
+        Serial.println(F("⚡ Regreso rapido a angulo 0°. Listo para presionar el boton otra vez."));
       }
       break;
 
@@ -638,9 +640,11 @@ void setup() {
   }
   setAllLeds(0);
 
-  // Test de Servos
-  setServoAngle(SERVO_CH0, 45); setServoAngle(SERVO_CH1, 135);
-  setServoAngle(SERVO_CH2, 45); setServoAngle(SERVO_CH3, 135);
+  // Test de Servos (Servo 0 siempre en 0°, los otros hacen test)
+  setServoAngle(SERVO_CH0, 0);
+  setServoAngle(SERVO_CH1, 135);
+  setServoAngle(SERVO_CH2, 45);
+  setServoAngle(SERVO_CH3, 135);
   delay(250);
   resetAllServos();
 
