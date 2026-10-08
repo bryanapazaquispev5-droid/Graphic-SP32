@@ -330,11 +330,12 @@ int servo0CurrentAngle = 0;
 unsigned long servo0TimerMs = 0;
 unsigned long servo0LastStepMs = 0;
 
-// Rutina de Servomotor 0 (Canal 0) a 180° exactos:
-// Inicia en 0°, gira suavemente hasta 180°, espera 3 segundos en 180°, y regresa a 0°.
+// Rutina de Servomotor 0 (Canal 0):
+// Inicia en 0°, gira más rápido (8ms/grado), frena y se queda parado 3 segundos cada 45°
+// (4 paradas: 45°, 90°, 135°, 180°), y al final regresa a 0°.
 void executeServo0MaxSweep() {
   Serial.println(F("\n============================================="));
-  Serial.println(F("🦾 INICIANDO BARRIDO SERVO 0 (0° -> 180° -> 3s -> 0°)"));
+  Serial.println(F("🦾 INICIANDO BARRIDO SERVO 0 (4 PARADAS CADA 45° -> 0°)"));
   Serial.println(F("============================================="));
 
   noTone(PIN_BUZZER_D4);
@@ -350,34 +351,53 @@ void executeServo0MaxSweep() {
   setServoAngle(SERVO_CH0, 0);
   delay(300);
 
-  // 2. Girar suavemente paso a paso de 0° a 180°
-  showLcdMessage(" GIRANDO SERVO  ", "0° -> 180°...");
-  for (int a = 0; a <= 180; a++) {
-    setServoAngle(SERVO_CH0, a);
-    delay(20); // 20ms por grado (~3.6s de recorrido suave continuo)
+  // 2. Recorrido con 4 paradas cada 45° (45°, 90°, 135°, 180°)
+  const int paradas[] = {45, 90, 135, 180};
+  int anguloActual = 0;
+
+  for (int p = 0; p < 4; p++) {
+    int meta = paradas[p];
+
+    // Giro más rápido (8ms por grado) hacia la meta
+    char msgFila2[17];
+    snprintf(msgFila2, sizeof(msgFila2), "%d° -> %d°...", anguloActual, meta);
+    showLcdMessage(" GIRANDO SERVO  ", msgFila2);
+
+    for (int a = anguloActual; a <= meta; a++) {
+      setServoAngle(SERVO_CH0, a);
+      delay(8); // Giro ágil y fluido
+    }
+    anguloActual = meta;
+
+    // Frenar y pausar 3 segundos exactos en la parada
+    Serial.print(F("⏸️ Parada "));
+    Serial.print(p + 1);
+    Serial.print(F("/4 en "));
+    Serial.print(meta);
+    Serial.println(F("°. Pausa de 3 segundos..."));
+
+    char l1[17];
+    snprintf(l1, sizeof(l1), " PARADA: %d° (%d/4)", meta, p + 1);
+    showLcdMessage(l1, "Pausa: 3 seg");
+    delay(1000);
+    showLcdMessage(l1, "Pausa: 2 seg");
+    delay(1000);
+    showLcdMessage(l1, "Pausa: 1 seg");
+    delay(1000);
   }
 
-  // 3. Llegó a 180°: pausar 3 segundos exactos
-  Serial.println(F("⏸️ Llegó a 180°. Pausa de 3 segundos..."));
-  showLcdMessage(" LIMITE: 180°   ", "Pausa: 3 seg");
-  delay(1000);
-  showLcdMessage(" LIMITE: 180°   ", "Pausa: 2 seg");
-  delay(1000);
-  showLcdMessage(" LIMITE: 180°   ", "Pausa: 1 seg");
-  delay(1000);
-
-  // 4. Regreso asegurado paso a paso desde 180° hasta 0°
+  // 3. Regreso seguro paso a paso desde 180° hasta 0°
   Serial.println(F("⚡ Regresando paso a paso a posición 0°..."));
   showLcdMessage(" RETORNO A CERO ", "Regresando...");
   for (int a = 180; a >= 0; a -= 2) {
     setServoAngle(SERVO_CH0, a);
-    delay(10); // Retorno rápido y seguro (menos de 1 segundo)
+    delay(8);
   }
   setServoAngle(SERVO_CH0, 0); // Asegura el 0° final
   delay(300);
 
   showLcdMessage(" REPOSO: CERO   ", "Listo para pulsar");
-  Serial.println(F("✅ Retorno completado con éxito. Servo 0 en 0° listo."));
+  Serial.println(F("✅ Recorrido de 4 paradas completado. Servo 0 en 0° listo."));
 }
 
 void showLcdMessage(const char* l1, const char* l2) {
