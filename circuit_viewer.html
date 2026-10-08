@@ -2301,7 +2301,7 @@ size_t currentStep = 0; // Posicion actual dentro de la cancion para poder reanu
 // - Por defecto siempre está en su ángulo 0°.
 // - Al pulsar el Botón 1: empieza a girar INMEDIATAMENTE y de forma lenta hasta su último ángulo (límite máximo).
 // - Al llegar al final: se queda parado 3 segundos en el límite.
-// - Pasados los 3 segundos: regresa a su ángulo 0° y se queda ahí parado.
+// - Pasados los 3 segundos: regresa rápido a su ángulo 0° y se queda ahí parado.
 enum Servo0Stage {
   S0_IDLE,
   S0_SWEEPING_UP,
@@ -2312,11 +2312,16 @@ Servo0Stage servo0State = S0_IDLE;
 int servo0CurrentAngle = 0;
 unsigned long servo0TimerMs = 0;
 unsigned long servo0LastStepMs = 0;
-// Intervalo de paso para el giro lento (ti ti ti ti: ~35ms por grado = ~6.3 segundos en completar el recorrido)
-constexpr unsigned long SERVO0_SWEEP_INTERVAL_MS = 35;
+
+// Ángulo máximo extendido y velocidad de giro lento (ti... ti... ti...)
+constexpr int SERVO0_MAX_ANGLE = 220; // Supera los 180° para exprimir todo el recorrido físico posible
+constexpr unsigned long SERVO0_SWEEP_INTERVAL_MS = 65; // 65ms por grado = ~14 segundos de giro bien visible y lento
 
 void startServo0Routine() {
-  // Detener cualquier sonido o melodía previa
+  // Si ya está ejecutando la rutina, ignorar para evitar reinicios
+  if (servo0State != S0_IDLE) return;
+
+  // Detener cualquier sonido previo
   noTone(PIN_BUZZER_D4);
   digitalWrite(PIN_BUZZER_D4, LOW);
   digitalWrite(PIN_LED_ONBOARD, LOW);
@@ -2325,13 +2330,13 @@ void startServo0Routine() {
   activeSong = 0;
   setAllLeds(0);
 
-  // Asegurar punto de partida en 0° e iniciar INMEDIATAMENTE el giro lento hacia el final
+  // Parte desde su 0° de reposo e inicia el giro lento paso a paso
   servo0CurrentAngle = 0;
   setServoAngle(SERVO_CH0, 0);
   servo0State = S0_SWEEPING_UP;
   servo0LastStepMs = millis();
-  showLcdMessage(&quot; GIRANDO SERVO  &quot;, &quot;Lentamente...&quot;);
-  Serial.println(F(&quot;🔘 Boton 1 presionado: Iniciando giro lento paso a paso hacia el maximo...&quot;));
+  showLcdMessage(&quot; GIRANDO LENTO  &quot;, &quot;Hacia el maximo&quot;);
+  Serial.println(F(&quot;🔘 Boton 1: Iniciando giro lento (ti... ti... ti...) hacia el maximo...&quot;));
 }
 
 void updateServo0Routine() {
@@ -2341,27 +2346,29 @@ void updateServo0Routine() {
     case S0_SWEEPING_UP:
       if (millis() - servo0LastStepMs &gt;= SERVO0_SWEEP_INTERVAL_MS) {
         servo0LastStepMs = millis();
-        if (servo0CurrentAngle &lt; 180) {
+        if (servo0CurrentAngle &lt; SERVO0_MAX_ANGLE) {
           servo0CurrentAngle++;
-          setServoAngle(SERVO_CH0, servo0CurrentAngle);
+          // Mapeo directo a microsegundos extendidos (400us a 2700us)
+          const int pulseUs = map(servo0CurrentAngle, 0, SERVO0_MAX_ANGLE, 400, 2700);
+          pwm.writeMicroseconds(SERVO_CH0, pulseUs);
         } else {
-          // Llegó a su máximo ángulo: quedarse en PAUSA 3 segundos exactamente
+          // Llegó a su máximo ángulo: quedarse congelado en pausa por 3 segundos
           servo0State = S0_HOLD_3S_AT_MAX;
           servo0TimerMs = millis();
           showLcdMessage(&quot; MAXIMO ALCANZADO&quot;, &quot;Pausa 3 segundos&quot;);
-          Serial.println(F(&quot;⏸️ Llego al maximo. En pausa por 3 segundos...&quot;));
+          Serial.println(F(&quot;⏸️ Llego al limite maximo. Congelado por 3 segundos...&quot;));
         }
       }
       break;
 
     case S0_HOLD_3S_AT_MAX:
       if (millis() - servo0TimerMs &gt;= 3000) {
-        // Terminaron los 3 segundos de pausa: REGRESA RAPIDO A SU ANGULO 0°
+        // Terminaron los 3 segundos: REGRESA A SU ANGULO 0° DE REPOSO
         servo0State = S0_IDLE;
-        setServoAngle(SERVO_CH0, 0); // Regreso rápido directo a 0°
+        setServoAngle(SERVO_CH0, 0);
         servo0CurrentAngle = 0;
-        showLcdMessage(&quot;  FIN: ANGULO 0 &quot;, &quot;Listo para pulsar&quot;);
-        Serial.println(F(&quot;⚡ Regreso rapido a angulo 0°. Listo para presionar el boton otra vez.&quot;));
+        showLcdMessage(&quot; REPOSO: CERO   &quot;, &quot;Listo para pulsar&quot;);
+        Serial.println(F(&quot;⚡ Pasaron 3s: Regreso a 0° de reposo. Listo para presionar el boton.&quot;));
       }
       break;
 
