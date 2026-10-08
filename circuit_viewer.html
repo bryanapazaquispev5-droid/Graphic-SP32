@@ -1190,63 +1190,63 @@
             <circle id="pt_proto_rail_vcc" class="wire-endpoint" cx="785" cy="215" r="5"/>
 
             <!-- ---------------------------------------------------- -->
-            <!-- CABLE C (AMARILLO/D4): Shield D4 Pin S ➔ Fila 25, Col B -->
+            <!-- CABLE C (AMARILLO/D4): Shield D4 Pin S ➔ Fila 31, Col B -->
             <!-- Origen: Pin S (x=95, y=358 - Columna Exterior S)      -->
-            <!-- Destino: Fila 25 Col B (865, 360) (730 + 135 = 865)   -->
-            <!-- RUTA DIRECTA INFERIOR (CERO CRUCES CON ROJO O NEGRO) -->
+            <!-- Destino: Fila 31 Col B (865, 435) (730 + 135 = 865)    -->
+            <!-- Bajado a Fila 31 para dejar amplio espacio con los LEDs -->
             <!-- ---------------------------------------------------- -->
             <path id="wire_sig_d4" class="wire-interactive" data-cable-id="sig_d4"
-                  d="M 95,358 C 95,360 600,360 865,360"
+                  d="M 95,358 C 95,435 600,435 865,435"
                   fill="none" stroke="#eab308" stroke-width="5" stroke-linecap="round"/>
             <circle id="pt_shield_s" class="wire-endpoint" cx="95" cy="358" r="5"/>
-            <circle id="pt_proto_25_b" class="wire-endpoint" cx="865" cy="360" r="5"/>
+            <circle id="pt_proto_25_b" class="wire-endpoint" cx="865" cy="435" r="5"/>
 
             <!-- ==================================================== -->
             <!-- CABLES DEL ZUMBADOR (MH-FMG) EN translate(1680, 275) -->
             <!-- Pines del módulo zumbador (x=1680+260+cx, y=275+22+cy): -->
             <!-- VCC (1956, 329), I/O (1982, 329), GND (2008, 329)     -->
-            <!-- Conectan directo a Protoboard:                        -->
-            <!-- VCC ➔ Fila 24 Col E (985, 347.5)                      -->
-            <!-- I/O ➔ Fila 25 Col E (985, 360)                        -->
-            <!-- GND ➔ Fila 26 Col E (985, 372.5)                      -->
+            <!-- Conectan directo a Protoboard (Filas 30, 31, 32):     -->
+            <!-- VCC ➔ Fila 30 Col E (985, 422.5)                      -->
+            <!-- I/O ➔ Fila 31 Col E (985, 435)                        -->
+            <!-- GND ➔ Fila 32 Col E (985, 447.5)                      -->
             <!-- ==================================================== -->
 
-            <!-- CABLE D (BLANCO/VCC): Buzzer VCC ➔ Fila 24, Columna E -->
+            <!-- CABLE D (BLANCO/VCC): Buzzer VCC ➔ Fila 30, Columna E -->
             <path id="wire_buzz_white" class="wire-interactive" data-cable-id="buzz_white"
-                  d="M 1956,329 C 1800,329 1300,347.5 985,347.5"
+                  d="M 1956,329 C 1800,329 1300,422.5 985,422.5"
                   fill="none" stroke="#f8fafc" stroke-width="4.5" stroke-linecap="round"/>
-            <path d="M 1956,329 C 1800,329 1300,347.5 985,347.5"
+            <path d="M 1956,329 C 1800,329 1300,422.5 985,422.5"
                   fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,4"/>
             <circle id="pt_buzz_vcc" class="wire-endpoint" cx="1956" cy="329" r="4.5"/>
-            <circle id="pt_proto_24_e" class="wire-endpoint" cx="985" cy="347.5" r="4.5"/>
+            <circle id="pt_proto_24_e" class="wire-endpoint" cx="985" cy="422.5" r="4.5"/>
 
-            <!-- PUENTE VCC BUZZER: Fila 24 Col B (865, 347.5) ➔ Riel Positivo (+) (785, 347.5) -->
+            <!-- PUENTE VCC BUZZER: Fila 30 Col B (865, 422.5) ➔ Riel Positivo (+) (785, 422.5) -->
             <line id="wire_buzz_vcc_bridge" class="wire-interactive" data-cable-id="buzz_white"
-                  x1="865" y1="347.5" x2="785" y2="347.5"
+                  x1="865" y1="422.5" x2="785" y2="422.5"
                   stroke="#ef4444" stroke-width="4" stroke-linecap="round"/>
-            <circle id="pt_proto_24_b" class="wire-endpoint" cx="865" cy="347.5" r="4.5"/>
-            <circle id="pt_proto_24_rail_vcc" class="wire-endpoint" cx="785" cy="347.5" r="4.5"/>
+            <circle id="pt_proto_24_b" class="wire-endpoint" cx="865" cy="422.5" r="4.5"/>
+            <circle id="pt_proto_24_rail_vcc" class="wire-endpoint" cx="785" cy="422.5" r="4.5"/>
 
-            <!-- CABLE E (MORADO/I/O): Buzzer I/O ➔ Fila 25, Columna E -->
+            <!-- CABLE E (MORADO/I/O): Buzzer I/O ➔ Fila 31, Columna E -->
             <path id="wire_buzz_purple" class="wire-interactive" data-cable-id="buzz_purple"
-                  d="M 1982,329 C 1800,345 1300,360 985,360"
+                  d="M 1982,329 C 1800,345 1300,435 985,435"
                   fill="none" stroke="#9333ea" stroke-width="4.5" stroke-linecap="round"/>
             <circle id="pt_buzz_io" class="wire-endpoint" cx="1982" cy="329" r="4.5"/>
-            <circle id="pt_proto_25_e" class="wire-endpoint" cx="985" cy="360" r="4.5"/>
+            <circle id="pt_proto_25_e" class="wire-endpoint" cx="985" cy="435" r="4.5"/>
 
-            <!-- CABLE F (AZUL/GND): Buzzer GND ➔ Fila 26, Columna E  -->
+            <!-- CABLE F (AZUL/GND): Buzzer GND ➔ Fila 32, Columna E  -->
             <path id="wire_buzz_blue" class="wire-interactive" data-cable-id="buzz_blue"
-                  d="M 2008,329 C 1800,360 1300,372.5 985,372.5"
+                  d="M 2008,329 C 1800,360 1300,447.5 985,447.5"
                   fill="none" stroke="#2563eb" stroke-width="4.5" stroke-linecap="round"/>
             <circle id="pt_buzz_gnd" class="wire-endpoint" cx="2008" cy="329" r="4.5"/>
-            <circle id="pt_proto_26_e" class="wire-endpoint" cx="985" cy="372.5" r="4.5"/>
+            <circle id="pt_proto_26_e" class="wire-endpoint" cx="985" cy="447.5" r="4.5"/>
 
-            <!-- PUENTE GND BUZZER: Fila 26 Col B (865, 372.5) ➔ Riel Negativo (-) (760, 372.5) -->
+            <!-- PUENTE GND BUZZER: Fila 32 Col B (865, 447.5) ➔ Riel Negativo (-) (760, 447.5) -->
             <line id="wire_buzz_gnd_bridge" class="wire-interactive" data-cable-id="buzz_blue"
-                  x1="865" y1="372.5" x2="760" y2="372.5"
+                  x1="865" y1="447.5" x2="760" y2="447.5"
                   stroke="#0284c7" stroke-width="4" stroke-linecap="round"/>
-            <circle id="pt_proto_26_b" class="wire-endpoint" cx="865" cy="372.5" r="4.5"/>
-            <circle id="pt_proto_26_rail_gnd" class="wire-endpoint" cx="760" cy="372.5" r="4.5"/>
+            <circle id="pt_proto_26_b" class="wire-endpoint" cx="865" cy="447.5" r="4.5"/>
+            <circle id="pt_proto_26_rail_gnd" class="wire-endpoint" cx="760" cy="447.5" r="4.5"/>
 
             <!-- ==================================================== -->
             <!-- ==================================================== -->
@@ -1651,7 +1651,7 @@
             <span class="color-pill" style="background: #eab308;"></span>
             <span>Cable Amarillo (D4 Señal)</span>
           </div>
-          <span style="font-size: 0.72rem; color: #fbbf24;">Shield ➔ Fila 25, Col B</span>
+          <span style="font-size: 0.72rem; color: #fbbf24;">Shield ➔ Fila 31, Col B</span>
         </button>
 
         <button class="cable-item-btn" data-cable="buzz_purple">
@@ -1659,7 +1659,7 @@
             <span class="color-pill" style="background: #9333ea;"></span>
             <span>Cable Morado (Buzzer I/O)</span>
           </div>
-          <span style="font-size: 0.72rem; color: #c084fc;">Buzzer ➔ Fila 25, Col E</span>
+          <span style="font-size: 0.72rem; color: #c084fc;">Buzzer ➔ Fila 31, Col E</span>
         </button>
 
         <button class="cable-item-btn" data-cable="vcc_shield">
@@ -1683,7 +1683,7 @@
             <span class="color-pill" style="background: #f8fafc;"></span>
             <span>Cable Blanco (Buzzer VCC)</span>
           </div>
-          <span style="font-size: 0.72rem; color: #f8fafc;">Fila 24 Col E ➔ Puente ➔ Riel (+)</span>
+          <span style="font-size: 0.72rem; color: #f8fafc;">Fila 30 Col E ➔ Puente ➔ Riel (+)</span>
         </button>
 
         <button class="cable-item-btn" data-cable="buzz_blue">
@@ -1691,7 +1691,7 @@
             <span class="color-pill" style="background: #2563eb;"></span>
             <span>Cable Azul (Buzzer GND)</span>
           </div>
-          <span style="font-size: 0.72rem; color: #60a5fa;">Fila 26 Col E ➔ Puente ➔ Riel (-)</span>
+          <span style="font-size: 0.72rem; color: #60a5fa;">Fila 32 Col E ➔ Puente ➔ Riel (-)</span>
         </button>
 
         <!-- SECCIÓN PANTALLA LCD 1602 I2C (4 CABLES) -->
@@ -2703,25 +2703,25 @@ void loop() {
   const CABLES_DATA = {
     "sig_d4": {
       name: "Cable Amarillo (Señal ESP32 D4)",
-      desc: "Línea de pulsos digitales y disparo HIGH",
+      desc: "Línea de pulsos digitales y disparo HIGH hacia el zumbador",
       origin: "Shield Fila D4, Pin S (Exterior)",
-      dest: "Protoboard Fila 25, Columna B",
-      hole: "Orificio 25-B (Exclusivo)",
+      dest: "Protoboard Fila 31, Columna B",
+      hole: "Orificio 31-B (Exclusivo)",
       volt: "3.3V (HIGH / LOW)",
       wireId: "wire_sig_d4",
       pts: ["pt_shield_s", "pt_proto_25_b"],
-      note: "Envía los beeps desde el GPIO 4. Llega a la columna B, dejando la columna E libre para el zumbador."
+      note: "Envía los beeps desde el GPIO 4. Llega a la columna B en la Fila 31, dejando amplio espacio libre respecto a los LEDs."
     },
     "buzz_purple": {
       name: "Cable Morado (Buzzer I/O)",
       desc: "Entrada de disparo del zumbador MH-FMG",
       origin: "Módulo Zumbador Pin I/O (Central)",
-      dest: "Protoboard Fila 25, Columna E",
-      hole: "Orificio 25-E (Exclusivo)",
+      dest: "Protoboard Fila 31, Columna E",
+      hole: "Orificio 31-E (Exclusivo)",
       volt: "3.3V Lógico",
       wireId: "wire_buzz_purple",
       pts: ["pt_buzz_io", "pt_proto_25_e"],
-      note: "Recibe los pulsos a través de la pista interna de la fila 25 de la protoboard. ¡Cero interferencias!"
+      note: "Recibe los pulsos a través de la pista interna de la fila 31 de la protoboard. ¡Cero interferencias!"
     },
     "vcc_shield": {
       name: "Cable Rojo (USB 5V / Shield USB5V)",
@@ -2749,23 +2749,23 @@ void loop() {
       name: "Cable Blanco (Buzzer VCC) + Puente Rojo",
       desc: "Alimentación positiva de 5V hacia el zumbador",
       origin: "Módulo Zumbador Pin VCC (Superior)",
-      dest: "Protoboard Fila 24, Col E ➔ Puente Col B ➔ Riel (+) 5V",
-      hole: "Orificio 24-E y Puente 24-B al Riel (+)",
+      dest: "Protoboard Fila 30, Col E ➔ Puente Col B ➔ Riel (+) 5V",
+      hole: "Orificio 30-E y Puente 30-B al Riel (+)",
       volt: "5.0V USB",
       wireId: "wire_buzz_white",
       pts: ["pt_buzz_vcc", "pt_proto_24_e", "pt_proto_24_b", "pt_proto_24_rail_vcc"],
-      note: "Llega a la Fila 24 Col E y se alimenta del riel (+) mediante el puente rojo directo en la Fila 24 Col B."
+      note: "Llega a la Fila 30 Col E y se alimenta del riel (+) mediante el puente rojo directo en la Fila 30 Col B."
     },
     "buzz_blue": {
       name: "Cable Azul (Buzzer GND) + Puente Azul",
       desc: "Tierra común del módulo zumbador hacia el riel (-)",
       origin: "Módulo Zumbador Pin GND (Inferior)",
-      dest: "Protoboard Fila 26, Col E ➔ Puente Col B ➔ Riel (-) GND",
-      hole: "Orificio 26-E y Puente 26-B al Riel (-)",
+      dest: "Protoboard Fila 32, Col E ➔ Puente Col B ➔ Riel (-) GND",
+      hole: "Orificio 32-E y Puente 32-B al Riel (-)",
       volt: "0.0V (GND)",
       wireId: "wire_buzz_blue",
       pts: ["pt_buzz_gnd", "pt_proto_26_e", "pt_proto_26_b", "pt_proto_26_rail_gnd"],
-      note: "Llega a la Fila 26 Col E y cierra el circuito a masa mediante el puente azul directo en la Fila 26 Col B."
+      note: "Llega a la Fila 32 Col E y cierra el circuito a masa mediante el puente azul directo en la Fila 32 Col B."
     },
     "lcd_gnd": {
       name: "Cable Azul (LCD GND)",
