@@ -330,11 +330,10 @@ int servo0CurrentAngle = 0;
 unsigned long servo0TimerMs = 0;
 unsigned long servo0LastStepMs = 0;
 
-// Calibración para Tower Pro SG90:
-// 500us = 0° absoluto
-// 2450us = Máximo ángulo físico real (evita atasco/bloqueo mecánico del engranaje)
-constexpr int SERVO0_US_MIN = 500;
-constexpr int SERVO0_US_MAX = 2450;
+// Calibración extrema forzada para Tower Pro SG90:
+// Bajamos a 380us en el mínimo y subimos a 2600us en el máximo absoluto
+constexpr int SERVO0_US_MIN = 380;
+constexpr int SERVO0_US_MAX = 2600;
 constexpr unsigned long SERVO0_SWEEP_INTERVAL_MS = 25; // Giro suave continuo
 
 void startServo0Routine() {
@@ -353,8 +352,8 @@ void startServo0Routine() {
   servo0CurrentAngle = 0;
   servo0State = S0_SWEEPING_UP;
   servo0LastStepMs = millis();
-  showLcdMessage(" GIRANDO SERVO  ", "0 -> Maximo...");
-  Serial.println(F("🔘 Boton 1: Avanzando lentamente hacia el maximo..."));
+  showLcdMessage(" FORZANDO MOTOR ", "0 -> Maximo...");
+  Serial.println(F("🔘 Boton 1: Forzando recorrido al maximo extremo fisico..."));
 }
 
 void updateServo0Routine() {
@@ -373,7 +372,7 @@ void updateServo0Routine() {
           servo0State = S0_HOLD_3S_AT_MAX;
           servo0TimerMs = millis();
           showLcdMessage(" MAXIMO ALCANZADO", "Pausa 3 segundos");
-          Serial.println(F("⏸️ Llego al tope maximo. Quedandose 3 segundos..."));
+          Serial.println(F("⏸️ Llego al limite maximo. En pausa por 3 segundos..."));
         }
       }
       break;
@@ -382,6 +381,7 @@ void updateServo0Routine() {
       if (millis() - servo0TimerMs >= 3000) {
         // Pasaron los 3 segundos: REGRESA INMEDIATAMENTE A 0°
         pwm.writeMicroseconds(SERVO_CH0, SERVO0_US_MIN);
+        delay(200); // Da tiempo al motor para llegar físicamente a 0°
         servo0CurrentAngle = 0;
         servo0State = S0_IDLE;
         showLcdMessage(" REPOSO: CERO   ", "Listo para pulsar");
