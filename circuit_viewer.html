@@ -2030,12 +2030,16 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40, I2C_Servos);
 
 // Constantes de Servos (Canales 0 a 3)
+// Calibración optimizada para Tower Pro Micro Servo 9g SG90:
+// A 50Hz (período de 20ms = 20000us) con resolución de 12 bits (4096 ticks):
+// 500us  -&gt; (500 / 20000) * 4096 = 102.4 (~102 ticks) -&gt; 0° real
+// 2500us -&gt; (2500 / 20000) * 4096 = 512.0 (~512 ticks) -&gt; Ángulo máximo físico real
 constexpr uint8_t SERVO_CH0 = 0;
 constexpr uint8_t SERVO_CH1 = 1;
 constexpr uint8_t SERVO_CH2 = 2;
 constexpr uint8_t SERVO_CH3 = 3;
-constexpr int SERVOMIN = 125;
-constexpr int SERVOMAX = 575;
+constexpr int SERVOMIN = 102; // 500 µs (tope mínimo)
+constexpr int SERVOMAX = 512; // 2500 µs (tope máximo)
 
 // Constantes de 6 LEDs (Canales 4 a 9)
 constexpr uint8_t LED_START_CH = 4;
