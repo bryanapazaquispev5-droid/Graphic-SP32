@@ -49,14 +49,13 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40, I2C_Servos);
 // Constantes de Servos (Canales 0 a 3)
 // Constantes de Servos (Canales 0 a 3)
 // Calibración amplia para clones Tower Pro SG90:
-// Con 540us-2400us los clones solo giran ~135°.
-// Expandiendo a 420us (0° real) y 2580us (180° real) completa el semicírculo entero de 180°:
+// 420us (0° real de inicio) a 2680us (180° completos de semicírculo)
 constexpr uint8_t SERVO_CH0 = 0;
 constexpr uint8_t SERVO_CH1 = 1;
 constexpr uint8_t SERVO_CH2 = 2;
 constexpr uint8_t SERVO_CH3 = 3;
 constexpr int SERVO_US_MIN = 420;  // 0° real de inicio
-constexpr int SERVO_US_MAX = 2580; // 180° real de llegada (semicírculo completo)
+constexpr int SERVO_US_MAX = 2680; // 180° completo con el recorrido extra
 
 // Constantes de 6 LEDs (Canales 4 a 9)
 constexpr uint8_t LED_START_CH = 4;
@@ -367,11 +366,15 @@ void executeServo0MaxSweep() {
   showLcdMessage(" LIMITE: 180°   ", "Pausa: 1 seg");
   delay(1000);
 
-  // 4. Regreso a posición 0° de reposo
-  Serial.println(F("⚡ Regresando a posición 0°..."));
-  showLcdMessage(" RETORNO A CERO ", "Regresando a 0°");
-  setServoAngle(SERVO_CH0, 0);
-  delay(600); // Tiempo para que el motor complete físicamente el giro de vuelta
+  // 4. Regreso asegurado paso a paso desde 180° hasta 0°
+  Serial.println(F("⚡ Regresando paso a paso a posición 0°..."));
+  showLcdMessage(" RETORNO A CERO ", "Regresando...");
+  for (int a = 180; a >= 0; a -= 2) {
+    setServoAngle(SERVO_CH0, a);
+    delay(10); // Retorno rápido y seguro (menos de 1 segundo)
+  }
+  setServoAngle(SERVO_CH0, 0); // Asegura el 0° final
+  delay(300);
 
   showLcdMessage(" REPOSO: CERO   ", "Listo para pulsar");
   Serial.println(F("✅ Retorno completado con éxito. Servo 0 en 0° listo."));
