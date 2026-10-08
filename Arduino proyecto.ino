@@ -330,15 +330,12 @@ int servo0CurrentAngle = 0;
 unsigned long servo0TimerMs = 0;
 unsigned long servo0LastStepMs = 0;
 
-// Control directo por Ticks PCA9685 para forzar todo el ángulo mecánico posible:
-// 90 ticks  (~440us)  -> Extremo cero absoluto
-// 560 ticks (~2730us) -> Extremo máximo absoluto físico (sobrepasa 180°)
-constexpr int SERVO0_TICK_MIN = 90;
-constexpr int SERVO0_TICK_MAX = 560;
-constexpr unsigned long SERVO0_SWEEP_INTERVAL_MS = 25; // Avance lento continuo
-
-void startServo0Routine() {
-  if (servo0State != S0_IDLE) return;
+// Rutina forzada de Servomotor 0 (Canal 0):
+// Va desde 0° hasta su máximo absoluto (>180°), espera 3 segundos en el máximo y vuelve a 0°.
+void executeServo0MaxSweep() {
+  Serial.println(F("\n============================================="));
+  Serial.println(F("🚀 INICIANDO BARRIDO FORZADO AL MAXIMO ABSOLUTO"));
+  Serial.println(F("============================================="));
 
   noTone(PIN_BUZZER_D4);
   digitalWrite(PIN_BUZZER_D4, LOW);
@@ -348,53 +345,35 @@ void startServo0Routine() {
   activeSong = -1;
   setAllLeds(0);
 
-  // Asegura el 0° absoluto e inicia el giro hacia el límite
-  pwm.setPWM(SERVO_CH0, 0, SERVO0_TICK_MIN);
-  servo0CurrentAngle = 0;
-  servo0State = S0_SWEEPING_UP;
-  servo0LastStepMs = millis();
-  showLcdMessage(" FORZANDO MOTOR ", "0 -> Maximo...");
-  Serial.println(F("🔘 Boton 1: Forzando recorrido al maximo posible..."));
-}
+  // 1. Asegurar posición inicial en 0° (pulso mínimo extremo: 90 ticks = ~440us)
+  showLcdMessage(" MOTOR 0: INICIO", "En posicion 0...");
+  pwm.setPWM(SERVO_CH0, 0, 90);
+  delay(500);
 
-void updateServo0Routine() {
-  if (servo0State == S0_IDLE) return;
-
-  switch (servo0State) {
-    case S0_SWEEPING_UP:
-      if (millis() - servo0LastStepMs >= SERVO0_SWEEP_INTERVAL_MS) {
-        servo0LastStepMs = millis();
-        if (servo0CurrentAngle < 180) {
-          servo0CurrentAngle++;
-          const int tick = map(servo0CurrentAngle, 0, 180, SERVO0_TICK_MIN, SERVO0_TICK_MAX);
-          pwm.setPWM(SERVO_CH0, 0, tick);
-        } else {
-          // Llegó al máximo ángulo: entrar en pausa de 3 segundos
-          // Al apagar el pulso (setPWM 0,0) el motor se queda quieto en su posición sin recalentarse ni colgarse
-          pwm.setPWM(SERVO_CH0, 0, 0); 
-          servo0State = S0_HOLD_3S_AT_MAX;
-          servo0TimerMs = millis();
-          showLcdMessage(" MAXIMO ALCANZADO", "Pausa 3 segundos");
-          Serial.println(F("⏸️ Llego al limite maximo. Desconectando pulso para evitar bloqueo por 3s..."));
-        }
-      }
-      break;
-
-    case S0_HOLD_3S_AT_MAX:
-      if (millis() - servo0TimerMs >= 3000) {
-        // Pasaron los 3 segundos: REGRESA DE GOLPE A SU ANGULO 0°
-        pwm.setPWM(SERVO_CH0, 0, SERVO0_TICK_MIN);
-        servo0CurrentAngle = 0;
-        servo0State = S0_IDLE;
-        showLcdMessage(" REPOSO: CERO   ", "Listo para pulsar");
-        Serial.println(F("⚡ Pasaron los 3s: Regreso inmediato a 0° de reposo y queda listo."));
-      }
-      break;
-
-    default:
-      servo0State = S0_IDLE;
-      break;
+  // 2. Girar lentamente paso a paso forzando los ticks desde 90 hasta 600 (~2900us, >180°)
+  showLcdMessage(" GIRANDO FORZADO", "0 -> Maximo...");
+  for (int tick = 90; tick <= 600; tick += 2) {
+    pwm.setPWM(SERVO_CH0, 0, tick);
+    delay(20); // Avance lento continuo
   }
+
+  // 3. Llegó al máximo absoluto: congelarse 3 segundos exactos
+  Serial.println(F("⏸️ Llegó al límite máximo. Pausa de 3 segundos..."));
+  showLcdMessage(" LIMITE MAXIMO  ", "Pausa: 3 seg");
+  delay(1000);
+  showLcdMessage(" LIMITE MAXIMO  ", "Pausa: 2 seg");
+  delay(1000);
+  showLcdMessage(" LIMITE MAXIMO  ", "Pausa: 1 seg");
+  delay(1000);
+
+  // 4. Regreso inmediato a su posición 0° de reposo
+  Serial.println(F("⚡ Regresando de golpe a posicion 0°..."));
+  showLcdMessage(" RETORNO A CERO ", "Regresando...");
+  pwm.setPWM(SERVO_CH0, 0, 90);
+  delay(600); // Tiempo para que el motor termine de girar físicamente de vuelta a 0°
+
+  showLcdMessage(" REPOSO: CERO   ", "Listo para pulsar");
+  Serial.println(F("✅ Retorno completado. Servo 0 en 0° listo."));
 }
 
 void showLcdMessage(const char* l1, const char* l2) {
@@ -454,20 +433,16 @@ int checkAnyButtonPressed() {
 }
 
 // Maneja la acción al pulsar un botón:
-// - Botón 0 (Pin D18): Rutina especial Servomotor 0 (Canal 0) (0° -> espera 3s -> barre a 180° -> inmediato 0° y queda fijo).
+// - Botón 0 (Pin D18): Rutina especial Servomotor 0 (Canal 0) (0° -> barre forzado al máximo -> pausa 3s -> regreso a 0°).
 // - Botones 1..4 (Mario, Star Wars, Piratas, Tetris): Reproduce/pausa/reanuda música y Servos 1, 2 y 3 funcionan normalmente.
 void handleButtonAction(int btn) {
   if (btn < 0 || btn > 4) return;
 
-  // Si se pulsa el Botón 1 (btn == 0): Control exclusivo de Servomotor 0 (el primerito)
+  // Si se pulsa el Botón 1 (btn == 0): Control exclusivo forzado de Servomotor 0 (el primerito)
   if (btn == 0) {
-    startServo0Routine();
+    executeServo0MaxSweep();
     return;
   }
-
-  // Si se pulsa cualquier otra canción (Botones 2 al 5): Cancelar rutina de servo 0 y dejar servo 0 en 0°
-  servo0State = S0_IDLE;
-  setServoAngle(SERVO_CH0, 0);
 
   if (activeSong == btn) {
     if (isPlaying) {
@@ -671,7 +646,6 @@ void setup() {
 
 void loop() {
   if (!isPlaying) {
-    updateServo0Routine(); // Rutina no bloqueante del Servo 0 (0° -> 3s -> 180° -> 0° fijo)
     int b = checkAnyButtonPressed();
     if (b != -1) {
       handleButtonAction(b);
