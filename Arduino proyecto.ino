@@ -47,16 +47,14 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40, I2C_Servos);
 
 // Constantes de Servos (Canales 0 a 3)
-// Calibración optimizada para Tower Pro Micro Servo 9g SG90:
-// A 50Hz (período de 20ms = 20000us) con resolución de 12 bits (4096 ticks):
-// 500us  -> (500 / 20000) * 4096 = 102.4 (~102 ticks) -> 0° real
-// 2500us -> (2500 / 20000) * 4096 = 512.0 (~512 ticks) -> Ángulo máximo físico real
+// Calibración exacta para Tower Pro Micro Servo 9g SG90:
+// Los clones de Tower Pro requieren de 480us (0° real) hasta 2500us (180° real)
 constexpr uint8_t SERVO_CH0 = 0;
 constexpr uint8_t SERVO_CH1 = 1;
 constexpr uint8_t SERVO_CH2 = 2;
 constexpr uint8_t SERVO_CH3 = 3;
-constexpr int SERVOMIN = 102; // 500 µs (tope mínimo)
-constexpr int SERVOMAX = 512; // 2500 µs (tope máximo)
+constexpr int SERVO_US_MIN = 480;  // 0° real (evita corte antes de 0°)
+constexpr int SERVO_US_MAX = 2500; // 180° real (completa el recorrido total de 180°)
 
 // Constantes de 6 LEDs (Canales 4 a 9)
 constexpr uint8_t LED_START_CH = 4;
@@ -64,8 +62,8 @@ constexpr uint8_t LED_COUNT    = 6;
 
 void setServoAngle(uint8_t ch, int angle) {
   angle = constrain(angle, 0, 180);
-  const int pulse = map(angle, 0, 180, SERVOMIN, SERVOMAX);
-  pwm.setPWM(ch, 0, pulse);
+  const int pulseUs = map(angle, 0, 180, SERVO_US_MIN, SERVO_US_MAX);
+  pwm.writeMicroseconds(ch, pulseUs);
 }
 
 void setDualServos(int angleCh0, int angleCh1) {
