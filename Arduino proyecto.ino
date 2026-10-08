@@ -330,30 +330,31 @@ int servo0CurrentAngle = 0;
 unsigned long servo0TimerMs = 0;
 unsigned long servo0LastStepMs = 0;
 
-// Ángulo máximo extendido y velocidad de giro lento (ti... ti... ti...)
-constexpr int SERVO0_MAX_ANGLE = 220; // Supera los 180° para exprimir todo el recorrido físico posible
-constexpr unsigned long SERVO0_SWEEP_INTERVAL_MS = 65; // 65ms por grado = ~14 segundos de giro bien visible y lento
+// Calibración para Tower Pro SG90:
+// 500us = 0° absoluto
+// 2450us = Máximo ángulo físico real (evita atasco/bloqueo mecánico del engranaje)
+constexpr int SERVO0_US_MIN = 500;
+constexpr int SERVO0_US_MAX = 2450;
+constexpr unsigned long SERVO0_SWEEP_INTERVAL_MS = 25; // Giro suave continuo
 
 void startServo0Routine() {
-  // Si ya está ejecutando la rutina, ignorar para evitar reinicios
   if (servo0State != S0_IDLE) return;
 
-  // Detener cualquier sonido previo
   noTone(PIN_BUZZER_D4);
   digitalWrite(PIN_BUZZER_D4, LOW);
   digitalWrite(PIN_LED_ONBOARD, LOW);
   isPlaying = false;
   isPaused  = false;
-  activeSong = 0;
+  activeSong = -1;
   setAllLeds(0);
 
-  // Parte desde su 0° de reposo e inicia el giro lento paso a paso
+  // Asegura punto de partida en 0° e inicia el avance lento
+  pwm.writeMicroseconds(SERVO_CH0, SERVO0_US_MIN);
   servo0CurrentAngle = 0;
-  setServoAngle(SERVO_CH0, 0);
   servo0State = S0_SWEEPING_UP;
   servo0LastStepMs = millis();
-  showLcdMessage(" GIRANDO LENTO  ", "Hacia el maximo");
-  Serial.println(F("🔘 Boton 1: Iniciando giro lento (ti... ti... ti...) hacia el maximo..."));
+  showLcdMessage(" GIRANDO SERVO  ", "0 -> Maximo...");
+  Serial.println(F("🔘 Boton 1: Avanzando lentamente hacia el maximo..."));
 }
 
 void updateServo0Routine() {
@@ -363,29 +364,28 @@ void updateServo0Routine() {
     case S0_SWEEPING_UP:
       if (millis() - servo0LastStepMs >= SERVO0_SWEEP_INTERVAL_MS) {
         servo0LastStepMs = millis();
-        if (servo0CurrentAngle < SERVO0_MAX_ANGLE) {
+        if (servo0CurrentAngle < 180) {
           servo0CurrentAngle++;
-          // Mapeo directo a microsegundos extendidos (400us a 2700us)
-          const int pulseUs = map(servo0CurrentAngle, 0, SERVO0_MAX_ANGLE, 400, 2700);
+          const int pulseUs = map(servo0CurrentAngle, 0, 180, SERVO0_US_MIN, SERVO0_US_MAX);
           pwm.writeMicroseconds(SERVO_CH0, pulseUs);
         } else {
-          // Llegó a su máximo ángulo: quedarse congelado en pausa por 3 segundos
+          // Llegó al máximo ángulo: entrar en pausa de 3 segundos
           servo0State = S0_HOLD_3S_AT_MAX;
           servo0TimerMs = millis();
           showLcdMessage(" MAXIMO ALCANZADO", "Pausa 3 segundos");
-          Serial.println(F("⏸️ Llego al limite maximo. Congelado por 3 segundos..."));
+          Serial.println(F("⏸️ Llego al tope maximo. Quedandose 3 segundos..."));
         }
       }
       break;
 
     case S0_HOLD_3S_AT_MAX:
       if (millis() - servo0TimerMs >= 3000) {
-        // Terminaron los 3 segundos: REGRESA A SU ANGULO 0° DE REPOSO
-        servo0State = S0_IDLE;
-        setServoAngle(SERVO_CH0, 0);
+        // Pasaron los 3 segundos: REGRESA INMEDIATAMENTE A 0°
+        pwm.writeMicroseconds(SERVO_CH0, SERVO0_US_MIN);
         servo0CurrentAngle = 0;
+        servo0State = S0_IDLE;
         showLcdMessage(" REPOSO: CERO   ", "Listo para pulsar");
-        Serial.println(F("⚡ Pasaron 3s: Regreso a 0° de reposo. Listo para presionar el boton."));
+        Serial.println(F("⚡ Pasaron los 3s: Regreso a 0° de reposo y queda listo."));
       }
       break;
 
