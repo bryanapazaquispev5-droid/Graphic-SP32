@@ -70,10 +70,10 @@ void setDualServos(int angleCh0, int angleCh1) {
 }
 
 void resetAllServos() {
-  setServoAngle(SERVO_CH0, 0); // Servo 0 siempre en 0° por defecto
-  setServoAngle(SERVO_CH1, 0); // Servo 1 siempre en 0° por defecto
-  setServoAngle(SERVO_CH2, 90);
-  setServoAngle(SERVO_CH3, 90);
+  setServoAngle(SERVO_CH0, 0);  // Servo 0 (CH0) siempre en 0° por defecto
+  setServoAngle(SERVO_CH1, 90); // Servo 1 (CH1) posición neutral (90°)
+  setServoAngle(SERVO_CH2, 90); // Servo 2 (CH2) posición neutral (90°)
+  setServoAngle(SERVO_CH3, 90); // Servo 3 (CH3) posición neutral (90°)
 }
 
 void setLedBrightness(uint8_t index, uint16_t brightness) {
@@ -311,25 +311,26 @@ bool isPlaying = false;
 bool isPaused  = false;
 size_t currentStep = 0; // Posicion actual dentro de la cancion para poder reanudar
 
-// Modo Demostración de Servomotor con Botón 1 (Antigua canción navideña):
-// 1. Al pulsar Botón 1: Se mueve a 0°.
+// Modo Demostración de Servomotor 0 con Botón 1 (Antigua canción navideña):
+// 1. Al pulsar Botón 1: Solo Servo 0 (CH0) se mueve a 0°.
 // 2. Espera 3 segundos en 0°.
 // 3. Recorre poco a poco hasta su ángulo máximo (180°).
 // 4. Inmediatamente regresa a 0° ("angulo 0") y se queda ahí.
-enum Servo1Stage {
-  S1_IDLE,
-  S1_WAIT_3S,
-  S1_SWEEPING_UP,
-  S1_FINISH_RESET
+// Los servos 1, 2 y 3 siguen con su comportamiento normal.
+enum Servo0Stage {
+  S0_IDLE,
+  S0_WAIT_3S,
+  S0_SWEEPING_UP,
+  S0_FINISH_RESET
 };
 
-Servo1Stage servo1State = S1_IDLE;
-int servo1CurrentAngle = 0;
-unsigned long servo1TimerMs = 0;
-unsigned long servo1LastStepMs = 0;
-constexpr unsigned long SERVO1_SWEEP_INTERVAL_MS = 15; // 15ms por grado (~2.7s en recorrer 0° a 180°)
+Servo0Stage servo0State = S0_IDLE;
+int servo0CurrentAngle = 0;
+unsigned long servo0TimerMs = 0;
+unsigned long servo0LastStepMs = 0;
+constexpr unsigned long SERVO0_SWEEP_INTERVAL_MS = 15; // 15ms por grado (~2.7s en recorrer 0° a 180°)
 
-void startServo1Routine() {
+void startServo0Routine() {
   // Detener cualquier sonido o melodía previa
   noTone(PIN_BUZZER_D4);
   digitalWrite(PIN_BUZZER_D4, LOW);
@@ -338,56 +339,52 @@ void startServo1Routine() {
   isPaused  = false;
   activeSong = 0;
 
-  // Paso 1: Moverse inmediatamente a ángulo 0°
-  servo1CurrentAngle = 0;
+  // Paso 1: Mover ÚNICAMENTE el Servo 0 (CH0) a ángulo 0°
+  servo0CurrentAngle = 0;
   setServoAngle(SERVO_CH0, 0);
-  setServoAngle(SERVO_CH1, 0);
   setAllLeds(0);
 
   // Iniciar espera de 3 segundos
-  servo1State = S1_WAIT_3S;
-  servo1TimerMs = millis();
-  showLcdMessage("  MOTOR 1 EN 0  ", "Esperando 3s...");
-  Serial.println(F("🔘 Boton 1: Servo 1 movido a 0°. Esperando 3 segundos..."));
+  servo0State = S0_WAIT_3S;
+  servo0TimerMs = millis();
+  showLcdMessage("  MOTOR 0 EN 0  ", "Esperando 3s...");
+  Serial.println(F("🔘 Boton 1: Solo Servo 0 (CH0) movido a 0°. Esperando 3 segundos..."));
 }
 
-void updateServo1Routine() {
-  if (servo1State == S1_IDLE) return;
+void updateServo0Routine() {
+  if (servo0State == S0_IDLE) return;
 
-  switch (servo1State) {
-    case S1_WAIT_3S:
-      if (millis() - servo1TimerMs >= 3000) {
+  switch (servo0State) {
+    case S0_WAIT_3S:
+      if (millis() - servo0TimerMs >= 3000) {
         // Fin de los 3 segundos: empezar a recorrer hasta su ángulo máximo
-        servo1State = S1_SWEEPING_UP;
-        servo1CurrentAngle = 0;
-        servo1LastStepMs = millis();
+        servo0State = S0_SWEEPING_UP;
+        servo0CurrentAngle = 0;
+        servo0LastStepMs = millis();
         showLcdMessage(" RECORRIENDO... ", "Angulo: 0 -> 180");
-        Serial.println(F("🔄 Servo 1: Recorriendo suavemente hacia angulo maximo (180°)..."));
+        Serial.println(F("🔄 Servo 0: Recorriendo suavemente hacia angulo maximo (180°)..."));
       }
       break;
 
-    case S1_SWEEPING_UP:
-      if (millis() - servo1LastStepMs >= SERVO1_SWEEP_INTERVAL_MS) {
-        servo1LastStepMs = millis();
-        if (servo1CurrentAngle < 180) {
-          servo1CurrentAngle++;
-          setServoAngle(SERVO_CH1, servo1CurrentAngle);
-          // Opcional: mover también canal 0 en tándem por si el usuario tiene conectado en CH0 o CH1
-          setServoAngle(SERVO_CH0, servo1CurrentAngle);
+    case S0_SWEEPING_UP:
+      if (millis() - servo0LastStepMs >= SERVO0_SWEEP_INTERVAL_MS) {
+        servo0LastStepMs = millis();
+        if (servo0CurrentAngle < 180) {
+          servo0CurrentAngle++;
+          setServoAngle(SERVO_CH0, servo0CurrentAngle);
         } else {
           // Llegó a su ángulo máximo: decir inmediatamente "ángulo 0", volver a 0 y quedarse ahí
-          servo1State = S1_IDLE;
-          setServoAngle(SERVO_CH1, 0);
+          servo0State = S0_IDLE;
           setServoAngle(SERVO_CH0, 0);
-          servo1CurrentAngle = 0;
+          servo0CurrentAngle = 0;
           showLcdMessage("  FIN: ANGULO 0 ", "Queda en 0 grados");
-          Serial.println(F("⏹️ Termino recorrido: Inmediatamente en angulo 0 y queda fijo."));
+          Serial.println(F("⏹️ Termino recorrido Servo 0: Inmediatamente en angulo 0 y queda fijo."));
         }
       }
       break;
 
     default:
-      servo1State = S1_IDLE;
+      servo0State = S0_IDLE;
       break;
   }
 }
@@ -449,21 +446,20 @@ int checkAnyButtonPressed() {
 }
 
 // Maneja la acción al pulsar un botón:
-// - Botón 0 (Pin D18): Rutina especial Servomotor (0° -> espera 3s -> barre a 180° -> inmediato 0° y queda fijo).
-// - Botones 1..4 (Mario, Star Wars, Piratas, Tetris): Reproduce/pausa/reanuda música.
+// - Botón 0 (Pin D18): Rutina especial Servomotor 0 (Canal 0) (0° -> espera 3s -> barre a 180° -> inmediato 0° y queda fijo).
+// - Botones 1..4 (Mario, Star Wars, Piratas, Tetris): Reproduce/pausa/reanuda música y Servos 1, 2 y 3 funcionan normalmente.
 void handleButtonAction(int btn) {
   if (btn < 0 || btn > 4) return;
 
-  // Si se pulsa el Botón 1 (btn == 0): Control exclusivo de Servomotor 1
+  // Si se pulsa el Botón 1 (btn == 0): Control exclusivo de Servomotor 0 (el primerito)
   if (btn == 0) {
-    startServo1Routine();
+    startServo0Routine();
     return;
   }
 
-  // Si se pulsa cualquier otra canción (Botones 2 al 5): Cancelar rutina de servo y resetear a 0°
-  servo1State = S1_IDLE;
+  // Si se pulsa cualquier otra canción (Botones 2 al 5): Cancelar rutina de servo 0 y dejar servo 0 en 0°
+  servo0State = S0_IDLE;
   setServoAngle(SERVO_CH0, 0);
-  setServoAngle(SERVO_CH1, 0);
 
   if (activeSong == btn) {
     if (isPlaying) {
@@ -531,9 +527,17 @@ void executeSong(const NoteStep* steps, size_t totalSteps, const char* title) {
       showLcdMessage(steps[i].l1, steps[i].l2);
     }
 
-    // Servos 0 y 1 permanecen fijos en 0° (sin bailar con la música)
+    // Coreografía Servos:
+    // Servo 0 (CH0): Fijo en 0° (no baila con la música)
     setServoAngle(SERVO_CH0, 0);
-    setServoAngle(SERVO_CH1, 0);
+
+    // Servo 1 (CH1): Sigue tal cual como antes bailando con el tono de las notas
+    int a1 = 90;
+    if (steps[i].freq != REST) {
+      a1 = map(steps[i].freq, NOTE_A3, NOTE_C6, 20, 160);
+      a1 = constrain(a1, 15, 165);
+    }
+    setServoAngle(SERVO_CH1, a1);
 
     // 💡 6 LEDs: Vúmetro dinámico
     updateLedsByMusic(steps[i].freq);
@@ -542,6 +546,7 @@ void executeSong(const NoteStep* steps, size_t totalSteps, const char* title) {
       return; // Pausado o cambiado de canción
     }
 
+    setServoAngle(SERVO_CH1, 180 - a1);
     setAllLeds(250); // Leve respiración
 
     // Pausa corta entre notas
@@ -561,7 +566,7 @@ void executeSong(const NoteStep* steps, size_t totalSteps, const char* title) {
   if (isPlaying) {
     showLcdMessage("  Fin Cancion!  ", "Show Servos&LEDs");
     setServoAngle(SERVO_CH0, 0);
-    setServoAngle(SERVO_CH1, 0);
+    setServoAngle(SERVO_CH1, 90);
 
     for (int r = 0; r < 4; r++) {
       if (checkAnyButtonPressed() != -1) {
@@ -645,9 +650,9 @@ void setup() {
   showLcdMessage("  JUKEBOX ESP32 ", "Elige Boton 1..5");
 
   Serial.println(F("\n=================================================="));
-  Serial.println(F("🎵 JUKEBOX 4 CANCIONES + SERVO 1 DEMO + 6 LEDS 🔘"));
+  Serial.println(F("🎵 JUKEBOX 4 CANCIONES + SERVO 0 DEMO + 6 LEDS 🔘"));
   Serial.println(F("=================================================="));
-  Serial.println(F("1) Pin D18 -> Motor 1 (0° -> Espera 3s -> 180° -> 0° fijo) 🦾"));
+  Serial.println(F("1) Pin D18 -> Motor 0 (CH0) (0° -> Espera 3s -> 180° -> 0° fijo) 🦾"));
   Serial.println(F("2) Pin D13 -> Super Mario Bros 🍄"));
   Serial.println(F("3) Pin D12 -> Star Wars (Imperial March) ⚔️"));
   Serial.println(F("4) Pin D14 -> Piratas del Caribe 🏴‍☠️"));
@@ -656,7 +661,7 @@ void setup() {
 
 void loop() {
   if (!isPlaying) {
-    updateServo1Routine(); // Rutina no bloqueante del Servo 1 (0° -> 3s -> 180° -> 0° fijo)
+    updateServo0Routine(); // Rutina no bloqueante del Servo 0 (0° -> 3s -> 180° -> 0° fijo)
     int b = checkAnyButtonPressed();
     if (b != -1) {
       handleButtonAction(b);
