@@ -70,7 +70,7 @@ void setDualServos(int angleCh0, int angleCh1) {
 }
 
 void resetAllServos() {
-  setServoAngle(SERVO_CH0, 90);
+  setServoAngle(SERVO_CH0, 0); // Servo 0 por defecto siempre en ángulo mínimo (0°)
   setServoAngle(SERVO_CH1, 90);
   setServoAngle(SERVO_CH2, 90);
   setServoAngle(SERVO_CH3, 90);
@@ -311,6 +311,39 @@ bool isPlaying = false;
 bool isPaused  = false;
 size_t currentStep = 0; // Posicion actual dentro de la cancion para poder reanudar
 
+// Estado para barrido progresivo de Servo 0 (cuando se pausa o termina la musica)
+int servo0CurrentAngle = 0;
+bool isServo0Sweeping = false;
+unsigned long lastServo0SweepMs = 0;
+constexpr unsigned long SERVO0_SWEEP_INTERVAL_MS = 20; // 20ms por grado (~3.6s de 0° a 180°)
+
+void startServo0Sweep() {
+  servo0CurrentAngle = 0;
+  isServo0Sweeping = true;
+  lastServo0SweepMs = millis();
+  setServoAngle(SERVO_CH0, servo0CurrentAngle);
+}
+
+void resetServo0Fast() {
+  isServo0Sweeping = false;
+  servo0CurrentAngle = 0;
+  setServoAngle(SERVO_CH0, 0); // Vuelve rápidamente a su ángulo 0
+}
+
+void updateServo0Sweep() {
+  if (isServo0Sweeping && !isPlaying) {
+    if (millis() - lastServo0SweepMs >= SERVO0_SWEEP_INTERVAL_MS) {
+      lastServo0SweepMs = millis();
+      if (servo0CurrentAngle < 180) {
+        servo0CurrentAngle++;
+        setServoAngle(SERVO_CH0, servo0CurrentAngle);
+      } else {
+        isServo0Sweeping = false; // Llego al ángulo máximo (180°)
+      }
+    }
+  }
+}
+
 void showLcdMessage(const char* l1, const char* l2) {
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -319,7 +352,7 @@ void showLcdMessage(const char* l1, const char* l2) {
   lcd.print(l2);
 }
 
-// Pausa la cancion actual (apaga sonido, luces y deja servos quietos sin reiniciar progreso)
+// Pausa la cancion actual (apaga sonido, luces y arranca el giro lento de Servo 0)
 void pausePlayback() {
   noTone(PIN_BUZZER_D4);
   digitalWrite(PIN_BUZZER_D4, LOW);
@@ -328,8 +361,9 @@ void pausePlayback() {
   setAllLeds(0);
   isPlaying = false;
   isPaused  = true;
+  startServo0Sweep(); // Gira poco a poco de 0° a 180°
   showLcdMessage("  == PAUSA ==   ", "Pulsa para seguir");
-  Serial.println(F("⏸️ Cancion en PAUSA. Pulsa el boton para continuar."));
+  Serial.println(F("⏸️ Cancion en PAUSA. Servo 0 girando poco a poco a 180°."));
 }
 
 // Detiene y resetea totalmente la reproduccion
@@ -343,6 +377,7 @@ void stopPlayback() {
   isPaused  = false;
   activeSong = -1;
   currentStep = 0;
+  startServo0Sweep(); // Tambien gira poco a poco si se detiene
   showLcdMessage("  JUKEBOX ESP32 ", "Elige Boton 1..5");
   Serial.println(F("⏹️ Reproduccion FINALIZADA."));
 }
@@ -380,12 +415,14 @@ void handleButtonAction(int btn) {
     } else if (isPaused) {
       isPaused = false;
       isPlaying = true;
+      resetServo0Fast(); // Vuelve rápidamente a 0 al reanudar
       Serial.print(F("▶️ REANUDANDO cancion: "));
       Serial.println(btn + 1);
     } else {
       currentStep = 0;
       isPaused = false;
       isPlaying = true;
+      resetServo0Fast(); // Vuelve rápidamente a 0
     }
   } else {
     // Canción distinta seleccionada: reiniciar paso y reproducir
@@ -393,6 +430,7 @@ void handleButtonAction(int btn) {
     currentStep = 0;
     isPaused = false;
     isPlaying = true;
+    resetServo0Fast(); // Vuelve rápidamente a su ángulo 0 al iniciar otra música
     Serial.print(F("🎵 Seleccionada nueva cancion: "));
     Serial.println(btn + 1);
   }
@@ -516,6 +554,7 @@ void executeSong(const NoteStep* steps, size_t totalSteps, const char* title) {
     setAllLeds(0);
     isPlaying = false;
     activeSong = -1;
+    startServo0Sweep(); // La música se acabó: Servo 0 gira poco a poco de 0° a 180°
     showLcdMessage("  JUKEBOX ESP32 ", "Elige Boton 1..5");
   }
 }
@@ -572,11 +611,12 @@ void setup() {
 
 void loop() {
   if (!isPlaying) {
+    updateServo0Sweep(); // Giro suave paso a paso de 0° a 180° durante pausa o fin de canción
     int b = checkAnyButtonPressed();
     if (b != -1) {
       handleButtonAction(b);
     }
-    delay(10);
+    delay(2);
     return;
   }
 
