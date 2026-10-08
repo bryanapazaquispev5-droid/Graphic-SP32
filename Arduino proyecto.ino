@@ -314,24 +314,21 @@ bool isPaused  = false;
 size_t currentStep = 0; // Posicion actual dentro de la cancion para poder reanudar
 
 // Modo Demostración de Servomotor 0 con Botón 1:
-// 1. Al pulsar Botón 1: Servo 0 (CH0) se mueve a 0°.
-// 2. Espera 3 segundos en 0°.
-// 3. Recorre poco a poco hasta su ángulo máximo (180°).
-// 4. Se queda parado en su límite máximo por 3 segundos.
-// 5. Vuelve a su ángulo cero y se queda ahí parado.
+// - Por defecto siempre está en su ángulo 0°.
+// - Al pulsar el Botón 1: empieza a girar INMEDIATAMENTE y de forma lenta hasta su último ángulo (límite máximo).
+// - Al llegar al final: se queda parado 3 segundos en el límite.
+// - Pasados los 3 segundos: regresa a su ángulo 0° y se queda ahí parado.
 enum Servo0Stage {
   S0_IDLE,
-  S0_WAIT_3S_AT_ZERO,
   S0_SWEEPING_UP,
-  S0_HOLD_3S_AT_MAX,
-  S0_FINISH_RESET
+  S0_HOLD_3S_AT_MAX
 };
 
 Servo0Stage servo0State = S0_IDLE;
 int servo0CurrentAngle = 0;
 unsigned long servo0TimerMs = 0;
 unsigned long servo0LastStepMs = 0;
-constexpr unsigned long SERVO0_SWEEP_INTERVAL_MS = 15; // 15ms por grado (~2.7s en recorrer 0° a 180°)
+constexpr unsigned long SERVO0_SWEEP_INTERVAL_MS = 20; // 20ms por grado: giro lento (~3.6s de 0° a 180°)
 
 void startServo0Routine() {
   // Detener cualquier sonido o melodía previa
@@ -341,34 +338,21 @@ void startServo0Routine() {
   isPlaying = false;
   isPaused  = false;
   activeSong = 0;
-
-  // Paso 1: Mover ÚNICAMENTE el Servo 0 (CH0) a ángulo 0°
-  servo0CurrentAngle = 0;
-  setServoAngle(SERVO_CH0, 0);
   setAllLeds(0);
 
-  // Iniciar espera de 3 segundos en 0°
-  servo0State = S0_WAIT_3S_AT_ZERO;
-  servo0TimerMs = millis();
-  showLcdMessage("  MOTOR 0 EN 0  ", "Esperando 3s...");
-  Serial.println(F("🔘 Boton 1: Solo Servo 0 (CH0) movido a 0°. Esperando 3 segundos..."));
+  // Asegurar punto de partida en 0° e iniciar INMEDIATAMENTE el giro lento hacia el final
+  servo0CurrentAngle = 0;
+  setServoAngle(SERVO_CH0, 0);
+  servo0State = S0_SWEEPING_UP;
+  servo0LastStepMs = millis();
+  showLcdMessage(" GIRANDO SERVO  ", "0 -> Maximo...");
+  Serial.println(F("🔘 Boton 1 presionado: Girando lentamente hacia el limite maximo..."));
 }
 
 void updateServo0Routine() {
   if (servo0State == S0_IDLE) return;
 
   switch (servo0State) {
-    case S0_WAIT_3S_AT_ZERO:
-      if (millis() - servo0TimerMs >= 3000) {
-        // Fin de los 3 segundos en 0°: empezar a recorrer hasta su ángulo máximo
-        servo0State = S0_SWEEPING_UP;
-        servo0CurrentAngle = 0;
-        servo0LastStepMs = millis();
-        showLcdMessage(" RECORRIENDO... ", "Angulo: 0 -> 180");
-        Serial.println(F("🔄 Servo 0: Recorriendo suavemente hacia angulo maximo (180°)..."));
-      }
-      break;
-
     case S0_SWEEPING_UP:
       if (millis() - servo0LastStepMs >= SERVO0_SWEEP_INTERVAL_MS) {
         servo0LastStepMs = millis();
@@ -376,23 +360,23 @@ void updateServo0Routine() {
           servo0CurrentAngle++;
           setServoAngle(SERVO_CH0, servo0CurrentAngle);
         } else {
-          // Llegó al límite máximo: quedarse parado ahí 3 segundos
+          // Llegó al final (ángulo máximo): quedarse parado ahí 3 segundos
           servo0State = S0_HOLD_3S_AT_MAX;
           servo0TimerMs = millis();
           showLcdMessage(" LIMITE MAXIMO  ", "Pausa 3 segundos");
-          Serial.println(F("⏸️ Servo 0 llego a su limite maximo. Quedandose parado 3 segundos..."));
+          Serial.println(F("⏸️ Llego al final. Quedandose parado 3 segundos..."));
         }
       }
       break;
 
     case S0_HOLD_3S_AT_MAX:
       if (millis() - servo0TimerMs >= 3000) {
-        // Terminaron los 3 segundos en el límite máximo: volver a ángulo 0 y quedarse parado ahí
+        // Pasaron los 3 segundos: regresar a su ángulo 0° y quedarse parado ahí
         servo0State = S0_IDLE;
         setServoAngle(SERVO_CH0, 0);
         servo0CurrentAngle = 0;
         showLcdMessage("  FIN: ANGULO 0 ", "Queda en 0 grados");
-        Serial.println(F("⏹️ Regreso a angulo 0 y se queda parado permanentemente."));
+        Serial.println(F("⏹️ Pasaron 3s: Regreso a angulo 0° y queda parado."));
       }
       break;
 
