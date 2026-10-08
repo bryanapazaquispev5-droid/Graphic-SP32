@@ -1220,6 +1220,13 @@
             <circle id="pt_buzz_vcc" class="wire-endpoint" cx="1956" cy="329" r="4.5"/>
             <circle id="pt_proto_24_e" class="wire-endpoint" cx="985" cy="347.5" r="4.5"/>
 
+            <!-- PUENTE VCC BUZZER: Fila 24 Col B (865, 347.5) ➔ Riel Positivo (+) (785, 347.5) -->
+            <line id="wire_buzz_vcc_bridge" class="wire-interactive" data-cable-id="buzz_white"
+                  x1="865" y1="347.5" x2="785" y2="347.5"
+                  stroke="#ef4444" stroke-width="4" stroke-linecap="round"/>
+            <circle id="pt_proto_24_b" class="wire-endpoint" cx="865" cy="347.5" r="4.5"/>
+            <circle id="pt_proto_24_rail_vcc" class="wire-endpoint" cx="785" cy="347.5" r="4.5"/>
+
             <!-- CABLE E (MORADO/I/O): Buzzer I/O ➔ Fila 25, Columna E -->
             <path id="wire_buzz_purple" class="wire-interactive" data-cable-id="buzz_purple"
                   d="M 1982,329 C 1800,345 1300,360 985,360"
@@ -1233,6 +1240,13 @@
                   fill="none" stroke="#2563eb" stroke-width="4.5" stroke-linecap="round"/>
             <circle id="pt_buzz_gnd" class="wire-endpoint" cx="2008" cy="329" r="4.5"/>
             <circle id="pt_proto_26_e" class="wire-endpoint" cx="985" cy="372.5" r="4.5"/>
+
+            <!-- PUENTE GND BUZZER: Fila 26 Col B (865, 372.5) ➔ Riel Negativo (-) (760, 372.5) -->
+            <line id="wire_buzz_gnd_bridge" class="wire-interactive" data-cable-id="buzz_blue"
+                  x1="865" y1="372.5" x2="760" y2="372.5"
+                  stroke="#0284c7" stroke-width="4" stroke-linecap="round"/>
+            <circle id="pt_proto_26_b" class="wire-endpoint" cx="865" cy="372.5" r="4.5"/>
+            <circle id="pt_proto_26_rail_gnd" class="wire-endpoint" cx="760" cy="372.5" r="4.5"/>
 
             <!-- ==================================================== -->
             <!-- ==================================================== -->
@@ -1669,7 +1683,7 @@
             <span class="color-pill" style="background: #f8fafc;"></span>
             <span>Cable Blanco (Buzzer VCC)</span>
           </div>
-          <span style="font-size: 0.72rem; color: #f8fafc;">Buzzer ➔ Fila 24, Col E</span>
+          <span style="font-size: 0.72rem; color: #f8fafc;">Fila 24 Col E ➔ Puente ➔ Riel (+)</span>
         </button>
 
         <button class="cable-item-btn" data-cable="buzz_blue">
@@ -1677,7 +1691,7 @@
             <span class="color-pill" style="background: #2563eb;"></span>
             <span>Cable Azul (Buzzer GND)</span>
           </div>
-          <span style="font-size: 0.72rem; color: #60a5fa;">Buzzer ➔ Fila 26, Col E</span>
+          <span style="font-size: 0.72rem; color: #60a5fa;">Fila 26 Col E ➔ Puente ➔ Riel (-)</span>
         </button>
 
         <!-- SECCIÓN PANTALLA LCD 1602 I2C (4 CABLES) -->
@@ -2732,26 +2746,26 @@ void loop() {
       note: "Establece la masa común de todo el circuito. Pasa por el arco superior sin cruzar ningún cable."
     },
     "buzz_white": {
-      name: "Cable Blanco (Buzzer VCC)",
-      desc: "Alimentación positiva del zumbador",
+      name: "Cable Blanco (Buzzer VCC) + Puente Rojo",
+      desc: "Alimentación positiva de 5V hacia el zumbador",
       origin: "Módulo Zumbador Pin VCC (Superior)",
-      dest: "Protoboard Fila 24, Columna E",
-      hole: "Orificio 24-E (Exclusivo)",
-      volt: "5.0V / 3.3V",
+      dest: "Protoboard Fila 24, Col E ➔ Puente Col B ➔ Riel (+) 5V",
+      hole: "Orificio 24-E y Puente 24-B al Riel (+)",
+      volt: "5.0V USB",
       wireId: "wire_buzz_white",
-      pts: ["pt_buzz_vcc", "pt_proto_24_e"],
-      note: "Recibe corriente desde el riel rojo a través del pequeño puente rojo colocado en la columna B."
+      pts: ["pt_buzz_vcc", "pt_proto_24_e", "pt_proto_24_b", "pt_proto_24_rail_vcc"],
+      note: "Llega a la Fila 24 Col E y se alimenta del riel (+) mediante el puente rojo directo en la Fila 24 Col B."
     },
     "buzz_blue": {
-      name: "Cable Azul (Buzzer GND)",
-      desc: "Tierra común del módulo zumbador",
+      name: "Cable Azul (Buzzer GND) + Puente Azul",
+      desc: "Tierra común del módulo zumbador hacia el riel (-)",
       origin: "Módulo Zumbador Pin GND (Inferior)",
-      dest: "Protoboard Fila 26, Columna E",
-      hole: "Orificio 26-E (Exclusivo)",
+      dest: "Protoboard Fila 26, Col E ➔ Puente Col B ➔ Riel (-) GND",
+      hole: "Orificio 26-E y Puente 26-B al Riel (-)",
       volt: "0.0V (GND)",
       wireId: "wire_buzz_blue",
-      pts: ["pt_buzz_gnd", "pt_proto_26_e"],
-      note: "Retorna a masa a través del pequeño puente colocado en la columna B hacia el riel azul."
+      pts: ["pt_buzz_gnd", "pt_proto_26_e", "pt_proto_26_b", "pt_proto_26_rail_gnd"],
+      note: "Llega a la Fila 26 Col E y cierra el circuito a masa mediante el puente azul directo en la Fila 26 Col B."
     },
     "lcd_gnd": {
       name: "Cable Azul (LCD GND)",
